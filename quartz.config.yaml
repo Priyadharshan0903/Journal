@@ -6,7 +6,7 @@ configuration:
   enablePopovers: true
   analytics: null
   locale: en-US
-  baseUrl: priyadharshan0903.github.io/My-Journal
+  baseUrl: priyadharshan0903.github.io/Journal
   ignorePatterns:
     - private
     - templates
