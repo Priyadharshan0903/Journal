@@ -1,0 +1,319 @@
+# yaml-language-server: $schema=./quartz/plugins/quartz-plugins.schema.json
+configuration:
+  pageTitle: My Journal
+  pageTitleSuffix: ""
+  enableSPA: true
+  enablePopovers: true
+  analytics: null
+  locale: en-US
+  baseUrl: priyadharshan0903.github.io/My-Journal
+  ignorePatterns:
+    - private
+    - templates
+    - .obsidian
+  theme:
+    fontOrigin: googleFonts
+    cdnCaching: true
+    typography:
+      header:
+        name: Fraunces
+        weights: [400, 600, 700]
+        includeItalic: true
+      body:
+        name: Source Sans 3
+        weights: [400, 600]
+        includeItalic: true
+      code:
+        name: JetBrains Mono
+        weights: [400, 600]
+    colors:
+      # Sandalwood + terracotta. Every pair below is contrast-checked against its
+      # own background; hover deliberately goes darker in light mode and lighter
+      # in dark mode so it always reads as more prominent than rest.
+      lightMode:
+        light: "#faf5ec" # cream paper
+        lightgray: "#e8dcc8" # sand — borders, rules
+        gray: "#7d6a4d" # muted text, graph links      4.79:1  AA
+        darkgray: "#4a4038" # body text                    9.29:1  AAA
+        dark: "#2a231c" # headings                    14.26:1  AAA
+        secondary: "#9a5b34" # clay — links, accent         4.93:1  AA
+        tertiary: "#8f5620" # deep clay — hover            5.49:1  AA
+        highlight: rgba(154, 91, 52, 0.10)
+        textHighlight: "#f0c07b88"
+      darkMode:
+        light: "#1c1815" # warm charcoal, brown-tinted not blue-black
+        lightgray: "#3a332c" # bark
+        gray: "#8d8171" # muted text                    4.63:1  AA
+        darkgray: "#ddd3c4" # body text                    11.92:1  AAA
+        dark: "#f2ece1" # headings                     15.00:1  AAA
+        secondary: "#e0a367" # amber — links                 8.06:1  AAA
+        tertiary: "#f0bc82" # light amber — hover          10.26:1  AAA
+        highlight: rgba(224, 163, 103, 0.12)
+        textHighlight: "#c9743b66"
+plugins:
+  - source: "@quartz-community/created-modified-date"
+    enabled: true
+    options:
+      defaultDateType: modified
+      priority:
+        - frontmatter
+        - git
+        - filesystem
+    order: 10
+  - source: "@quartz-community/syntax-highlighting"
+    enabled: true
+    options:
+      theme:
+        light: github-light
+        dark: github-dark
+      keepBackground: false
+    order: 20
+  - source: "@quartz-community/obsidian-flavored-markdown"
+    enabled: true
+    options:
+      enableInHtmlEmbed: false
+      enableCheckbox: true
+    order: 30
+  - source: "@quartz-community/github-flavored-markdown"
+    enabled: true
+    order: 40
+  - source: "@quartz-community/table-of-contents"
+    enabled: true
+    order: 50
+    layout:
+      position: right
+      priority: 30
+  - source: "@quartz-community/crawl-links"
+    enabled: true
+    options:
+      markdownLinkResolution: shortest
+    order: 60
+  - source: "@quartz-community/description"
+    enabled: true
+    order: 70
+  - source: "@quartz-community/latex"
+    enabled: true
+    options:
+      renderEngine: katex
+    order: 80
+  - source: "@quartz-community/citations"
+    enabled: false
+    order: 85
+  - source: "@quartz-community/hard-line-breaks"
+    enabled: false
+    order: 90
+  - source: "@quartz-community/ox-hugo"
+    enabled: false
+    order: 91
+  - source: "@quartz-community/roam"
+    enabled: false
+    order: 92
+  - source: "@quartz-community/quartz-fonts"
+    enabled: true
+    # This plugin does NOT read configuration.theme.typography — it has its own
+    # font options and silently falls back to Quartz's stock faces otherwise.
+    # Keep these in sync with theme.typography above or two different font sets
+    # get requested.
+    options:
+      fontOrigin: googleFonts
+      header:
+        name: Fraunces
+        weights: [400, 600, 700]
+        includeItalic: true
+      body:
+        name: Source Sans 3
+        weights: [400, 600]
+        includeItalic: true
+      code:
+        name: JetBrains Mono
+        weights: [400, 600]
+  - source: "@quartz-themes/core"
+    enabled: false
+    options:
+      theme: tokyo-night
+      mode: both
+  - source: "@quartz-community/remove-draft"
+    enabled: true
+  - source: "@quartz-community/explicit-publish"
+    enabled: false
+  - source: "@quartz-community/alias-redirects"
+    enabled: true
+  - source: "@quartz-community/content-index"
+    enabled: true
+    options:
+      enableSiteMap: true
+      enableRSS: true
+  - source: "@quartz-community/favicon"
+    enabled: true
+  - source: "@quartz-community/og-image"
+    enabled: true
+  # Only needed for a custom domain. On a github.io project page a CNAME file
+  # makes Pages try to serve from a domain that isn't configured.
+  - source: "@quartz-community/cname"
+    enabled: false
+  - source: "@quartz-community/canvas-page"
+    enabled: true
+  - source: "@quartz-community/content-page"
+    enabled: true
+  - source: "@quartz-community/folder-page"
+    enabled: true
+  - source: "@quartz-community/tag-page"
+    enabled: true
+  - source: "@quartz-community/explorer"
+    enabled: true
+    layout:
+      position: left
+      priority: 50
+  # Graph moves out of the right rail to sit below the article.
+  - source: "@quartz-community/graph"
+    enabled: true
+    layout:
+      position: afterBody
+      priority: 20
+  - source: "@quartz-community/search"
+    enabled: true
+    layout:
+      position: header
+      priority: 30
+      group: toolbar
+      groupOptions:
+        grow: true
+  - source: "@quartz-community/backlinks"
+    enabled: true
+    layout:
+      position: right
+      priority: 50
+  - source: "@quartz-community/article-title"
+    enabled: true
+    layout:
+      position: beforeBody
+      priority: 10
+  # Date and read-time are noise on the landing page.
+  - source: "@quartz-community/content-meta"
+    enabled: true
+    layout:
+      position: beforeBody
+      priority: 20
+      condition: not-index
+  - source: "@quartz-community/tag-list"
+    enabled: false
+    layout:
+      position: beforeBody
+      priority: 30
+  # Site wordmark leads the top nav.
+  - source: "@quartz-community/page-title"
+    enabled: true
+    layout:
+      position: header
+      priority: 10
+  - source: "@quartz-community/darkmode"
+    enabled: true
+    layout:
+      position: header
+      priority: 40
+      group: toolbar
+  - source: "@quartz-community/reader-mode"
+    enabled: true
+    layout:
+      position: header
+      priority: 50
+      group: toolbar
+  - source: "@quartz-community/breadcrumbs"
+    enabled: true
+    layout:
+      position: beforeBody
+      priority: 5
+      condition: not-index
+  - source: "@quartz-community/comments"
+    enabled: false
+    options:
+      provider: giscus
+      options: {}
+    layout:
+      position: afterBody
+      priority: 10
+  - source: "@quartz-community/footer"
+    enabled: true
+    options:
+      links:
+        GitHub: https://github.com/Priyadharshan0903
+    layout:
+      position: footer
+      priority: 50
+  - source: "@quartz-community/recent-notes"
+    enabled: false
+  # Follows the toolbar into the header; left rail is now explorer-only.
+  - source: "@quartz-community/spacer"
+    enabled: true
+    options: {}
+    order: 25
+    layout:
+      position: header
+      priority: 20
+      display: mobile-only
+  - source: "@quartz-community/bases-page"
+    enabled: true
+    options: {}
+    order: 50
+  - source: "@quartz-community/note-properties"
+    enabled: true
+    options:
+      includeAll: false
+      includedProperties:
+        - description
+        - tags
+        - aliases
+      excludedProperties: []
+      hidePropertiesView: false
+      delimiters: ---
+      language: yaml
+    order: 5
+    layout:
+      position: beforeBody
+      priority: 15
+      display: all
+      # The landing page's frontmatter is metadata, not content to show.
+      condition: not-index
+  - source: "@quartz-community/unlisted-pages"
+    enabled: true
+    options: {}
+    order: 45
+  - source: "@quartz-community/encrypted-pages"
+    enabled: true
+    options:
+      iterations: 600000
+      passwordField: password
+      unlistWhenEncrypted: false
+      outputPath: static/encryptedContentIndex.json
+    order: 900
+  - source: "@quartz-community/stacked-pages"
+    enabled: false
+    layout:
+      position: afterBody
+      priority: 50
+      display: all
+layout:
+  groups:
+    toolbar:
+      priority: 35
+      direction: row
+      gap: 0.5rem
+  byPageType:
+    "404":
+      positions:
+        beforeBody: []
+        left: []
+        right: []
+    content: {}
+    folder:
+      exclude:
+        - reader-mode
+      positions:
+        right: []
+    tag:
+      exclude:
+        - reader-mode
+      positions:
+        right: []
+    canvas: {}
+    bases: {}

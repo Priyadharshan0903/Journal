@@ -87,9 +87,11 @@ function formatFontSpecification(
 
 export function googleFontHref(theme: Theme) {
   const { header, body, code } = theme.typography
-  const headerFont = formatFontSpecification("header", header)
-  const bodyFont = formatFontSpecification("body", body)
-  const codeFont = formatFontSpecification("code", code)
+  // Font family names containing spaces (e.g. "Source Sans 3") must be encoded,
+  // otherwise the resulting URL is malformed and the stylesheet never loads.
+  const headerFont = encodeURIComponent(formatFontSpecification("header", header))
+  const bodyFont = encodeURIComponent(formatFontSpecification("body", body))
+  const codeFont = encodeURIComponent(formatFontSpecification("code", code))
 
   return `https://fonts.googleapis.com/css2?family=${headerFont}&family=${bodyFont}&family=${codeFont}&display=swap`
 }
