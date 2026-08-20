@@ -200,7 +200,43 @@ nav.site-nav {
     sessionStorage.setItem("explorerScrollTop", "0")
   }
 
+  // The explorer only tags a row .active on an exact slug match, so on a folder
+  // index page (e.g. /jenkins/) nothing at all is highlighted. Mark the folder
+  // itself instead, matching against the data-folderpath the explorer already
+  // writes onto each .folder-container.
+  function markCurrentFolder() {
+    // Normalise "/jenkins/index.html" and "/jenkins/" down to "/jenkins" so both
+    // the folder's own page and a note inside it compare the same way.
+    const path = decodeURIComponent(location.pathname)
+      .replace(/\\/index\\.html?$/, "")
+      .replace(/\\.html?$/, "")
+      .replace(/\\/+$/, "")
+
+    const containers = document.querySelectorAll(".folder-container[data-folderpath]")
+    containers.forEach((el) => {
+      // The explorer stores the folder's index slug, e.g. "jenkins/index".
+      const fp = (el.dataset.folderpath || "").replace(/\\/index$/, "")
+      // endsWith covers the folder's own page; includes covers notes nested
+      // inside it. Both are anchored on "/" so "go" cannot match "golang".
+      const isCurrent = !!fp && (path.endsWith("/" + fp) || path.includes("/" + fp + "/"))
+      el.classList.toggle("folder-active", isCurrent)
+    })
+  }
+
+  // The explorer builds its tree asynchronously (it awaits the content index),
+  // so the containers usually do not exist yet when "nav" fires. Watch for them.
+  function watchExplorer() {
+    markCurrentFolder()
+    const root = document.querySelector(".explorer-content")
+    if (!root) return
+    const observer = new MutationObserver(() => markCurrentFolder())
+    observer.observe(root, { childList: true, subtree: true })
+    window.addCleanup(() => observer.disconnect())
+  }
+
   function setupNav() {
+    watchExplorer()
+
     const toggle = document.querySelector(".nav-toggle")
     const drawer = document.querySelector(".nav-drawer")
     if (!toggle || !drawer) return

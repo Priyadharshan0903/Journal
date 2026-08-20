@@ -1,10 +1,12 @@
 import { PageFrame, PageFrameProps } from "./types"
 import HeaderConstructor from "../Header"
 import NavConstructor from "../Nav"
+import PageChromeConstructor from "../PageChrome"
 import { componentRegistry } from "../registry"
 
 const Header = HeaderConstructor()
 const Nav = NavConstructor()
+const PageChrome = PageChromeConstructor()
 
 // Components rendered directly by a frame are invisible to
 // getComponentResources() in quartz/plugins/emitters/componentResources.ts,
@@ -16,6 +18,7 @@ const Nav = NavConstructor()
 // already-built component just returns its JSX, yielding nothing to collect.
 componentRegistry.register("frame-header", HeaderConstructor, "quartz/components/Header")
 componentRegistry.register("frame-nav", NavConstructor, "quartz/components/Nav")
+componentRegistry.register("frame-chrome", PageChromeConstructor, "quartz/components/PageChrome")
 
 /**
  * The default page frame — three-column layout with left sidebar, center
@@ -37,6 +40,7 @@ export const DefaultFrame: PageFrame = {
   }: PageFrameProps) {
     return (
       <>
+        <PageChrome {...componentData} />
         <div class="left sidebar">
           {left.map((BodyComponent) => (
             <BodyComponent {...componentData} />

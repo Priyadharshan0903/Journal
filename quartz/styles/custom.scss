@@ -1,6 +1,33 @@
 @use "./variables.scss" as *;
 
 /* ---------------------------------------------------------------------------
+   Design tokens
+
+   Layered shadows and a shared easing curve, so depth and motion stay
+   consistent everywhere instead of being re-invented per component. Dark mode
+   needs markedly heavier shadows to read at all against a near-black surface.
+--------------------------------------------------------------------------- */
+
+// Mirrors `.page { max-width: calc(#{desktop} + 300px) }` in base.scss.
+$pageMax: 1500px;
+
+:root {
+  --topbar-h: 3.9rem;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-sm: 0 1px 2px rgb(60 40 20 / 5%);
+  --shadow-md: 0 1px 2px rgb(60 40 20 / 5%), 0 6px 16px -4px rgb(60 40 20 / 8%);
+  --shadow-lg: 0 1px 2px rgb(60 40 20 / 6%), 0 12px 32px -8px rgb(60 40 20 / 14%);
+  --surface-veil: 78%;
+}
+
+:root[saved-theme="dark"] {
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 6px 16px -4px rgb(0 0 0 / 45%);
+  --shadow-lg: 0 1px 2px rgb(0 0 0 / 35%), 0 12px 32px -8px rgb(0 0 0 / 55%);
+  --surface-veil: 72%;
+}
+
+/* ---------------------------------------------------------------------------
    Top navigation bar
 
    Header DOM order is fixed by layout priorities in quartz.config.yaml
@@ -9,12 +36,25 @@
    arrangement is independent of that DOM order:
 
      [ wordmark ] ................ [ nav pill ] [ search ] [ theme ] [ reader ]
+
+   The bar is fixed rather than sticky on purpose: `position: sticky` would be
+   trapped inside .page-header, which is only a few hundred pixels tall, so the
+   nav would unstick almost immediately. Fixed takes it out of flow, so .page
+   carries a matching padding-top and the sticky sidebars start below it.
 --------------------------------------------------------------------------- */
 
+.page {
+  padding-top: var(--topbar-h);
+}
+
+.page > #quartz-body .sidebar {
+  top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  padding-top: 2.5rem;
+}
+
 .page > #quartz-body .center > .page-header {
-  // The stock 6rem of breathing room above the title is too much once a nav
-  // bar lives up here.
-  margin-top: 2rem;
+  margin-top: 1.5rem;
 
   @media all and ($mobile) {
     margin-top: 0;
@@ -22,13 +62,35 @@
 }
 
 .page-header header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 90;
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 0.75rem;
-  margin: 0 0 1.5rem 0;
-  padding-bottom: 1.25rem;
+  height: var(--topbar-h);
+  margin: 0;
+  // Centres the bar's contents on the same box as .page (whose max-width is
+  // `calc(desktop + 300px)` in base.scss) while the background runs full-bleed.
+  // The 2rem inset matches .sidebar's own padding so the wordmark lines up with
+  // the explorer beneath it.
+  padding: 0 max(2rem, calc((100% - #{$pageMax}) / 2 + 2rem));
   border-bottom: 1px solid var(--lightgray);
+  background-color: color-mix(in srgb, var(--light) var(--surface-veil), transparent);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+}
+
+@media all and ($mobile) {
+  .page > #quartz-body .sidebar {
+    top: 0;
+    height: unset;
+  }
+
+  .page-header header {
+    padding: 0 1rem;
+  }
 }
 
 .page-header header .page-title {
@@ -71,28 +133,35 @@
 }
 
 .card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  padding: 1.1rem 1.2rem;
+  padding: 1.25rem 1.35rem;
   border: 1px solid var(--lightgray);
-  border-radius: 0.9rem;
-  background: var(--light);
+  border-radius: 1.25rem;
+  // A barely-there vertical wash gives the surface some dimension without
+  // reading as a gradient.
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--secondary) 4%, var(--light)),
+    var(--light) 60%
+  );
+  box-shadow: var(--shadow-sm);
   transition:
-    border-color 0.15s ease,
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color 0.25s var(--ease-out),
+    transform 0.25s var(--ease-out),
+    box-shadow 0.25s var(--ease-out);
 
-  // The whole card is a link; kill Quartz's underline/background link styling.
-  &,
   &:hover {
-    background-image: none;
+    border-color: color-mix(in srgb, var(--secondary) 55%, var(--lightgray));
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
   }
 
-  &:hover {
-    border-color: var(--secondary);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+  &:active {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
   }
 }
 
@@ -181,8 +250,365 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Hover polish
+   Toolbar icons
+
+   The three stock components draw their glyphs in three different styles —
+   search is an 18px hairline outline, darkmode is a 20px solid fill, and
+   reader-mode is 20px filled *and* stroked — so they never read as a set.
+   We hide the shipped <svg>s and repaint each button with a matched outline
+   glyph via mask-image. The components keep all of their behaviour; only what
+   is drawn changes.
+
+   Painting with `background-color: currentColor` means one `color:` rule drives
+   the glyph, so hover states come for free.
 --------------------------------------------------------------------------- */
+
+$icon-search: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E";
+$icon-sun: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41'/%3E%3C/svg%3E";
+$icon-moon: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'/%3E%3C/svg%3E";
+$icon-book: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 7v14'/%3E%3Cpath d='M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z'/%3E%3C/svg%3E";
+
+@mixin glyph($svg, $size: 18px) {
+  content: "";
+  display: block;
+  flex-shrink: 0;
+  width: $size;
+  height: $size;
+  background-color: currentColor;
+  mask-image: url("data:image/svg+xml,#{$svg}");
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml,#{$svg}");
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+
+// Retire the shipped glyphs.
+.darkmode > svg,
+.readermode > svg,
+.search > .search-button > svg {
+  display: none;
+}
+
+// One shared hover target for both icon-only buttons.
+.page-header .darkmode,
+.page-header .readermode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
+  color: var(--gray);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+
+  &:hover {
+    color: var(--tertiary);
+    background-color: var(--highlight);
+  }
+}
+
+.page-header .readermode::before {
+  @include glyph($icon-book);
+}
+
+// Show the mode you are currently in, matching the stock component's behaviour.
+.page-header .darkmode::before {
+  @include glyph($icon-sun);
+}
+
+:root[saved-theme="dark"] .page-header .darkmode::before {
+  @include glyph($icon-moon);
+}
+
+// Before the theme script runs there is no saved-theme attribute, so honour the
+// OS preference to avoid a sun flashing on a dark page.
+@media (prefers-color-scheme: dark) {
+  :root:not([saved-theme]) .page-header .darkmode::before {
+    @include glyph($icon-moon);
+  }
+}
+
+// The search pill, rounded to match the nav.
+.page-header .search > .search-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 34px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--lightgray);
+  border-radius: 2em;
+  background-color: transparent;
+  color: var(--gray);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+
+  &::before {
+    @include glyph($icon-search, 17px);
+  }
+
+  & > p {
+    margin: 0;
+    color: inherit;
+    font-family: var(--headerFont);
+    font-size: 0.9rem;
+    line-height: 1;
+  }
+
+  &:hover {
+    color: var(--tertiary);
+    border-color: var(--secondary);
+    background-color: var(--highlight);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Column gutters
+
+   The stock grid sets column-gap to 5px, which leaves the explorer and the TOC
+   almost touching the article. Widen the gutter and claw back the width from
+   the 320px side panels so the content column keeps its size.
+
+   Both rules are scoped to their breakpoint on purpose: custom.scss is
+   unlayered, so an unscoped rule here would also override the mobile grid.
+--------------------------------------------------------------------------- */
+
+@media all and ($desktop) {
+  .page > #quartz-body {
+    grid-template-columns: 300px auto 300px;
+    column-gap: 1.75rem;
+  }
+}
+
+@media all and ($tablet) {
+  .page > #quartz-body {
+    grid-template-columns: 300px auto;
+    column-gap: 1.75rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Explorer: density and the active note
+
+   Stock file links inherit the full body font size, so long note titles wrap to
+   two or three lines and the sidebar turns into a wall of text. They also
+   distinguish the current note only by colour — `--tertiary` against folder
+   titles already using `--secondary`, two shades of the same amber — which is
+   why you cannot tell where you are.
+
+   The active row now gets an accent bar, a tint and extra weight, and hover is
+   a background change *only*, so the two can never be confused.
+--------------------------------------------------------------------------- */
+
+.explorer-content ul li > a {
+  display: block;
+  padding: 0.4rem 0.55rem;
+  border-left: 3px solid transparent;
+  border-radius: 0 0.4rem 0.4rem 0;
+  color: var(--dark);
+  opacity: 0.7;
+  font-size: 0.85rem;
+  // Wrapped lines stay tight on purpose: the gap *between* rows below is what
+  // separates entries, so keeping the internal leading smaller than that gap is
+  // what makes a two-line title read as one item.
+  line-height: 1.35;
+  transition:
+    background-color 0.15s ease,
+    opacity 0.15s ease,
+    color 0.15s ease;
+}
+
+.explorer-content ul li + li {
+  margin-top: 0.3rem;
+}
+
+// Give the folder rows the same rhythm, plus a little air above each one.
+// The negative left margin lets the tinted pill extend to the same left edge as
+// the file rows below while the chevron keeps its original alignment.
+.explorer-content .folder-container {
+  padding: 0.45rem 0.6rem 0.45rem 0.45rem;
+  margin-top: 0.6rem;
+  margin-left: -0.45rem;
+}
+
+.explorer-content .folder-outer > ul {
+  margin-top: 0.3rem;
+  padding-bottom: 0.2rem;
+}
+
+// Background-only hover. base.scss's generic a:hover turns links amber, which
+// made hover indistinguishable from the active row — override the colour back.
+.explorer-content ul li > a:hover {
+  background-color: var(--highlight);
+  color: var(--dark);
+  opacity: 0.95;
+}
+
+.explorer-content ul li > a.active {
+  border-left-color: var(--secondary);
+  background-color: var(--highlight);
+  color: var(--dark);
+  opacity: 1;
+  font-weight: $semiBoldWeight;
+}
+
+// Tighten the nesting indent now that rows carry their own accent bar.
+.explorer-content .folder-outer > ul {
+  margin-left: 4px;
+  padding-left: 0.6rem;
+}
+
+/* The collapsed mobile drawer sits just off-screen, but the stock
+   `.folder-outer.open { visibility: visible }` rule re-shows an open folder's
+   contents even though the drawer itself is hidden — so the active row's new
+   background tint leaked a sliver in at the left edge. Keep it hidden until the
+   drawer is actually open. */
+@media all and ($mobile) {
+  .explorer.collapsed .folder-outer.open {
+    visibility: hidden;
+  }
+}
+
+/* Mark the folder containing the current note. The `:has()` rule covers a note
+   nested inside the folder; `.folder-active` is set by the script in Nav.tsx and
+   covers folder index pages, where the explorer marks nothing at all because it
+   only matches an exact slug. */
+.explorer-content li:has(> .folder-outer a.active) > .folder-container,
+.explorer-content .folder-container.folder-active {
+  background-color: var(--highlight);
+  border-radius: 0.4rem;
+}
+
+.explorer-content li:has(> .folder-outer a.active) > .folder-container div > button span,
+.explorer-content li:has(> .folder-outer a.active) > .folder-container div > a,
+.explorer-content .folder-container.folder-active div > button span,
+.explorer-content .folder-container.folder-active div > a {
+  color: var(--tertiary);
+}
+
+/* ---------------------------------------------------------------------------
+   Reading progress
+
+   Sits above the fixed nav so it reads as the page's own top edge. Rendered by
+   quartz/components/PageChrome.tsx; the inner span's width is driven by scroll.
+--------------------------------------------------------------------------- */
+
+.reading-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 95;
+  height: 3px;
+  pointer-events: none;
+
+  & > span {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: 0 3px 3px 0;
+    background: linear-gradient(90deg, var(--secondary), var(--tertiary));
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Code blocks
+
+   PageChrome prepends a .code-bar carrying the language (read off the
+   `data-language` attribute Shiki leaves on <pre>) and a copy button.
+--------------------------------------------------------------------------- */
+
+figure[data-rehype-pretty-code-figure] {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--lightgray);
+  border-radius: 0.9rem;
+  box-shadow: var(--shadow-sm);
+
+  & > pre {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+  }
+}
+
+.code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 0.5rem 0.4rem 0.9rem;
+  border-bottom: 1px solid var(--lightgray);
+  background-color: color-mix(in srgb, var(--secondary) 5%, var(--light));
+}
+
+.code-lang {
+  font-family: var(--codeFont);
+  font-size: 0.72rem;
+  font-weight: $semiBoldWeight;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.code-copy {
+  padding: 0.25rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 2em;
+  background-color: transparent;
+  color: var(--gray);
+  font-family: var(--headerFont);
+  font-size: 0.75rem;
+  font-weight: $semiBoldWeight;
+  cursor: pointer;
+  transition:
+    color 0.2s var(--ease-out),
+    border-color 0.2s var(--ease-out),
+    background-color 0.2s var(--ease-out);
+
+  &:hover {
+    color: var(--tertiary);
+    border-color: var(--lightgray);
+    background-color: var(--highlight);
+  }
+
+  &.copied {
+    color: var(--secondary);
+    border-color: color-mix(in srgb, var(--secondary) 40%, transparent);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Motion
+
+   One shared entrance so a page settles in rather than snapping, plus tactile
+   hover/press states. Everything here is disabled under prefers-reduced-motion.
+--------------------------------------------------------------------------- */
+
+@keyframes chrome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page > #quartz-body .center > article,
+.page > #quartz-body .center > .page-header .popover-hint {
+  animation: chrome-rise 0.4s var(--ease-out) both;
+}
 
 .explorer .filesystem-item,
 .explorer .folder-button,
@@ -190,18 +616,41 @@
   transition: color 0.15s ease;
 }
 
+.folder-icon {
+  transition: transform 0.25s var(--ease-out);
+}
+
 a.internal {
   transition: color 0.15s ease;
+}
+
+.link-chip:active,
+.nav-link:active {
+  transform: translateY(1px);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .card,
   .link-chip,
-  a.internal {
+  a.internal,
+  .code-copy,
+  .folder-icon,
+  .explorer-content ul li > a,
+  .page-header .darkmode,
+  .page-header .readermode,
+  .page-header .search > .search-button {
     transition: none;
   }
 
-  .card:hover {
+  .page > #quartz-body .center > article,
+  .page > #quartz-body .center > .page-header .popover-hint {
+    animation: none;
+  }
+
+  .card:hover,
+  .card:active,
+  .link-chip:active,
+  .nav-link:active {
     transform: none;
   }
 }
