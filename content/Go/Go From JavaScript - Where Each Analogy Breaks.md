@@ -27,7 +27,7 @@ cases where the JS intuition is confidently incorrect.
 | Maps | ≈ `Object`/`Map` | Iteration order is deliberately randomized, not insertion-ordered. |
 | Functions | closures, first-class funcs | Multiple return values instead of tuples/objects; no default params, no overloading. |
 | Errors | — | No `try`/`catch`. Errors are ordinary values returned alongside results; the habit to replace is "check the second return value." `panic`/`recover` is **not** `throw`/`catch` — see [[Sync WaitGroup Go Skips Done When F Panics]]. |
-| Pointers | JS objects are always references | Go makes you choose. A value receiver or plain arg gets a *copy*, so mutations vanish silently. This has no JS counterpart at all. |
+| Pointers | JS objects are always references | Go makes you choose. A value receiver or plain arg gets a *copy*, so mutations vanish silently. This has no JS counterpart at all. `T` and `*T` are also distinct types in a signature, with no implicit `&` at the call boundary — see [[Go Function Types Match Exactly - http.Request Is Not A *http.Request]]. |
 | Structs & methods | ≈ objects/classes | Value vs pointer receiver decides whether the caller sees mutation: `func (r Rectangle) Area()` reads, `func (r *Rectangle) Scale()` mutates. |
 | Embedding | ≈ `extends` | It is composition, not inheritance — there is no supertype and no virtual dispatch onto the outer type. See [[Struct Embedding Promotes Fields And Methods]]. |
 | Interfaces | ≈ TypeScript structural typing | Satisfied *implicitly* — no `implements`. A type conforms by having the methods, so a package can satisfy an interface it has never heard of. |
@@ -36,6 +36,8 @@ cases where the JS intuition is confidently incorrect.
 | Channels | no JS equivalent | Not queues by default — an unbuffered channel is a rendezvous, and each value reaches exactly one receiver rather than caching for any number of readers. See [[An Unbuffered Channel Is A Rendezvous Not A Queue]]. |
 | `select` | ≈ `Promise.race` | Operates on channel readiness, blocks by default, and picks randomly among several ready cases rather than by completion time. |
 | `sync.WaitGroup` | ≈ `Promise.all` | A counter, not a collection — it carries no results and no errors. Values come back over a channel or a shared slice you guard yourself. |
+| `context.Context` | ≈ `AbortController` + `AbortSignal` in one value | The signal does **not** abort anything — no `fetch` equivalent honours it for you, so every layer must check `ctx.Done()` itself. It is also threaded as an explicit first argument through every call rather than captured in a closure. See [[Context Cancellation Is Cooperative Not Preemptive]]. |
+| Deadlines | ≈ `AbortSignal.timeout(ms)` | Deadlines only ever *tighten* down a call chain; a child cannot ask for longer than its parent has left. See [[A Derived Context Can Only Shorten Its Parent's Deadline]]. |
 
 ## Details
 
@@ -56,3 +58,9 @@ go run -race ./exercises/concurrency
 - [[Sync WaitGroup Go Skips Done When F Panics]]
 - [[An io.Reader Is Drained By Its First Read]]
 - [[Struct Embedding Promotes Fields And Methods]]
+- [[Go Function Types Match Exactly - http.Request Is Not A *http.Request]]
+- [[Context Cancellation Is Cooperative Not Preemptive]]
+- [[A Derived Context Can Only Shorten Its Parent's Deadline]]
+- [[Err Tells You A Context Was Canceled, Cause Tells You Why]]
+- [[A Server Request Context Dies When ServeHTTP Returns]]
+- [[WithValue Needs An Unexported Key Type]]
