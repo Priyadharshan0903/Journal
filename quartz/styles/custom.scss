@@ -498,6 +498,32 @@ $icon-book: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill=
 }
 
 /* ---------------------------------------------------------------------------
+   Folder listings
+
+   Folder pages that also have a hand-written index.md render the curated hub
+   first and then Quartz's automatic member listing. That repetition is worth
+   keeping — a note added to the folder shows up here even if the hub forgets it
+   — but it should read as an exhaustive index underneath the overview rather
+   than compete with it.
+--------------------------------------------------------------------------- */
+
+.page-listing {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--lightgray);
+
+  & > p {
+    margin: 0 0 0.75rem 0;
+    font-family: var(--headerFont);
+    font-size: 0.8rem;
+    font-weight: $semiBoldWeight;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--gray);
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Reading progress
 
    Sits above the fixed nav so it reads as the page's own top edge. Rendered by

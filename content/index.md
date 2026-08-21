@@ -16,9 +16,17 @@ actually mattered.
 ## 🧠 What's in here
 
 <div class="card-grid">
-  <a class="card" href="./go/">
-    <span class="card-title">Go</span>
-    <span class="card-desc">Concurrency, interfaces, and composition — mostly the places where an intuition from another language quietly breaks.</span>
+  <a class="card" href="./go/context/">
+    <span class="card-title">Go · Context</span>
+    <span class="card-desc">Cancellation, deadlines and request-scoped values — and the gap between what the signature suggests and what the runtime does.</span>
+  </a>
+  <a class="card" href="./go/concurrency/">
+    <span class="card-title">Go · Concurrency</span>
+    <span class="card-desc">Channels, goroutines and WaitGroups, which fail by blocking or vanishing rather than by returning an error.</span>
+  </a>
+  <a class="card" href="./go/types/">
+    <span class="card-title">Go · Types</span>
+    <span class="card-desc">Interfaces, embedding and the places Go's type rules turn out stricter than they look.</span>
   </a>
   <a class="card" href="./jenkins/">
     <span class="card-title">Jenkins</span>
@@ -33,25 +41,25 @@ actually mattered.
 ## 📝 Start here
 
 <div class="card-grid">
-  <a class="card" href="./go/an-unbuffered-channel-is-a-rendezvous-not-a-queue">
+  <a class="card" href="./go/concurrency/an-unbuffered-channel-is-a-rendezvous-not-a-queue">
     <span class="card-title">An Unbuffered Channel Is A Rendezvous, Not A Queue</span>
     <span class="card-desc">Why a send blocks even though nothing looks full.</span>
   </a>
-  <a class="card" href="./go/when-main-returns-go-kills-every-goroutine-mid-flight">
+  <a class="card" href="./go/context/context-cancellation-is-cooperative-not-preemptive">
+    <span class="card-title">Context Cancellation Is Cooperative, Not Preemptive</span>
+    <span class="card-desc">Cancelling a context stops nothing on its own — somebody has to be listening.</span>
+  </a>
+  <a class="card" href="./go/concurrency/when-main-returns-go-kills-every-goroutine-mid-flight">
     <span class="card-title">When main Returns, Go Kills Every Goroutine Mid-Flight</span>
     <span class="card-desc">No graceful shutdown, no warning — the work just stops.</span>
   </a>
-  <a class="card" href="./go/an-io.reader-is-drained-by-its-first-read">
+  <a class="card" href="./go/types/an-io.reader-is-drained-by-its-first-read">
     <span class="card-title">An io.Reader Is Drained By Its First Read</span>
     <span class="card-desc">The second consumer gets nothing, and no error tells you so.</span>
   </a>
-  <a class="card" href="./go/sync-waitgroup-go-skips-done-when-f-panics">
+  <a class="card" href="./go/concurrency/sync-waitgroup-go-skips-done-when-f-panics">
     <span class="card-title">sync.WaitGroup.Go Skips Done() When f Panics</span>
     <span class="card-desc">A panic in a worker turns into a hang somewhere else entirely.</span>
-  </a>
-  <a class="card" href="./go/struct-embedding-promotes-fields-and-methods">
-    <span class="card-title">Struct Embedding Promotes Fields And Methods</span>
-    <span class="card-desc">It looks like inheritance right up until it doesn't.</span>
   </a>
   <a class="card" href="./go/go-from-javascript---where-each-analogy-breaks">
     <span class="card-title">Go From JavaScript: Where Each Analogy Breaks</span>
