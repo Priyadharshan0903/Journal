@@ -33,3 +33,4 @@ So for install one-liners meant to stay valid forever, name release assets by pl
 ## Related
 
 - [[A Duplicate Env Var Appended Last Wins At Exec Time]]
+- [[Orchestrating Existing Tools Beat Reimplementing Auth In ghsw]] — same pattern applied and verified end-to-end against a real published release.

@@ -29,3 +29,4 @@ Putting the flag first works fine (`--email me@work.com work`), but that's not t
 ## Related
 
 - [[A Duplicate Env Var Appended Last Wins At Exec Time]]
+- [[Orchestrating Existing Tools Beat Reimplementing Auth In ghsw]] — the same bug, independently hit and fixed while building `ghsw`.
