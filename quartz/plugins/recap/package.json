@@ -1,0 +1,25 @@
+{
+  "name": "recap",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./components": "./dist/components/index.js"
+  },
+  "quartz": {
+    "name": "recap",
+    "displayName": "Recap",
+    "category": "component",
+    "version": "1.0.0",
+    "defaultOrder": 50,
+    "defaultEnabled": true,
+    "defaultOptions": {},
+    "components": {
+      "RecapCard": {
+        "displayName": "Recap Card",
+        "defaultPosition": "right",
+        "defaultPriority": 40
+      }
+    }
+  }
+}

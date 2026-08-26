@@ -1,0 +1,1489 @@
+@use "./variables.scss" as *;
+
+/* ---------------------------------------------------------------------------
+   Blueprint — dark/light "technical drawing" theme.
+
+   This file replaces custom.scss as the unlayered override (see
+   componentResources.ts) so it wins over the @layer-wrapped component CSS.
+   custom.scss is left on disk, untouched, as a diffable reference for the
+   previous sandalwood theme.
+
+   Structure carried over unchanged from custom.scss: fixed topbar + sidebar
+   offset, popover-hint entrance animation, code-bar/copy button, reading
+   progress bar, column gutters, toolbar icon glyphs. Everything else below is
+   new Blueprint surface: registration-mark cards, tracked-out mono metadata,
+   condensed uppercase headings, and per-view bp-* classes for the new
+   Homepage / GraphPage / FolderDirectory / NotesIndex / TagDirectory /
+   NoteSiblings / recap components.
+--------------------------------------------------------------------------- */
+
+$pageMax: 1500px;
+
+:root {
+  --topbar-h: 3.9rem;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 12%);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 12%), 0 6px 16px -4px rgb(0 0 0 / 16%);
+  --shadow-lg: 0 1px 2px rgb(0 0 0 / 14%), 0 12px 32px -8px rgb(0 0 0 / 24%);
+  --surface-veil: 82%;
+  --mono-track: 0.09em;
+}
+
+:root[saved-theme="dark"] {
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 6px 16px -4px rgb(0 0 0 / 45%);
+  --shadow-lg: 0 1px 2px rgb(0 0 0 / 35%), 0 12px 32px -8px rgb(0 0 0 / 55%);
+  --surface-veil: 88%;
+}
+
+/* ---------------------------------------------------------------------------
+   Base type — condensed uppercase headings, hairline rules everywhere.
+--------------------------------------------------------------------------- */
+
+.page article {
+  & h1,
+  & h2,
+  & h3,
+  & h4,
+  & h5,
+  & h6 {
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+
+  & > h1:first-child {
+    font-size: 2.6rem;
+    line-height: 1.05;
+    max-width: 26ch;
+  }
+
+  & blockquote {
+    position: relative;
+    margin: 0 0 1.5rem;
+    padding: 1.1rem 1.3rem;
+    border: 1px solid var(--lightgray);
+    border-left: 1px solid var(--lightgray);
+    border-radius: 0;
+    background: var(--highlight);
+
+    & p {
+      margin: 0;
+      font-size: 1.05rem;
+      color: var(--dark);
+    }
+  }
+
+  & table {
+    border-radius: 0;
+    border: 1px solid var(--lightgray);
+  }
+
+  & th {
+    font-family: var(--headerFont);
+    font-size: 0.75rem;
+    letter-spacing: var(--mono-track);
+    text-transform: uppercase;
+    color: var(--gray);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Top navigation bar (structure unchanged from custom.scss; re-skinned)
+--------------------------------------------------------------------------- */
+
+.page {
+  padding-top: var(--topbar-h);
+}
+
+.page > #quartz-body .sidebar {
+  top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  padding-top: 2.5rem;
+}
+
+.page > #quartz-body .center > .page-header {
+  margin-top: 1.5rem;
+
+  @media all and ($mobile) {
+    margin-top: 0;
+  }
+}
+
+.page-header header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.25rem;
+  height: var(--topbar-h);
+  margin: 0;
+  padding: 0 max(1.75rem, calc((100% - #{$pageMax}) / 2 + 1.75rem));
+  border-bottom: 1px solid var(--lightgray);
+  background-color: color-mix(in srgb, var(--light) var(--surface-veil), transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+@media all and ($mobile) {
+  .page > #quartz-body .sidebar {
+    top: 0;
+    height: unset;
+  }
+
+  .page-header header {
+    padding: 0 1rem;
+  }
+}
+
+.page-header header .page-title {
+  order: 0;
+  margin: 0 auto 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: var(--headerFont);
+  font-size: 1.15rem;
+  font-weight: $semiBoldWeight;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  &::before {
+    content: "P";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    flex: none;
+    border: 1px solid var(--secondary);
+    font-family: var(--codeFont);
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--secondary);
+  }
+
+  & a {
+    background: none;
+    color: var(--dark);
+  }
+
+  & a:hover {
+    color: var(--secondary);
+  }
+}
+
+/* "REV NN · N NOTES" mono label, injected by Header.tsx next to the wordmark. */
+.bp-build-tag {
+  order: 0;
+  margin: 0 auto 0 -0.75rem;
+  font-family: var(--codeFont);
+  font-size: 0.68rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+  white-space: nowrap;
+
+  @media all and ($mobile) {
+    display: none;
+  }
+}
+
+.page-header header .site-nav {
+  order: 1;
+}
+
+.page-header header .flex-component {
+  order: 2;
+}
+
+/* ---------------------------------------------------------------------------
+   Toolbar icons (unchanged mechanism, re-skinned to square/hairline)
+--------------------------------------------------------------------------- */
+
+$icon-search: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E";
+$icon-sun: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41'/%3E%3C/svg%3E";
+$icon-moon: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'/%3E%3C/svg%3E";
+
+@mixin glyph($svg, $size: 18px) {
+  content: "";
+  display: block;
+  flex-shrink: 0;
+  width: $size;
+  height: $size;
+  background-color: currentColor;
+  mask-image: url("data:image/svg+xml,#{$svg}");
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml,#{$svg}");
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+
+.darkmode > svg,
+.search > .search-button > svg {
+  display: none;
+}
+
+.page-header .darkmode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--gray);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover {
+    color: var(--secondary);
+    border-color: var(--lightgray);
+  }
+}
+
+.page-header .darkmode::before {
+  @include glyph($icon-sun);
+}
+
+:root[saved-theme="dark"] .page-header .darkmode::before {
+  @include glyph($icon-moon);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([saved-theme]) .page-header .darkmode::before {
+    @include glyph($icon-moon);
+  }
+}
+
+.page-header .search > .search-button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 36px;
+  margin-left: 14px;
+  padding: 0 18px;
+  border: 1px solid var(--secondary);
+  border-radius: 0;
+  background-color: var(--secondary);
+  color: var(--light);
+  font-family: var(--headerFont);
+  font-size: 0.85rem;
+  font-weight: $semiBoldWeight;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &::before {
+    @include glyph($icon-search, 15px);
+  }
+
+  & > p {
+    margin: 0;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: 1;
+  }
+
+  &:hover {
+    background-color: var(--tertiary);
+    border-color: var(--tertiary);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Site nav — bottom-rule active indicator instead of a pill.
+--------------------------------------------------------------------------- */
+
+nav.site-nav {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  height: var(--topbar-h);
+}
+
+.nav-toggle,
+.nav-drawer {
+  display: none;
+}
+
+@media all and (max-width: 800px) {
+  .nav-links {
+    display: none !important;
+  }
+  .nav-toggle {
+    display: block;
+  }
+}
+
+.nav-links {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 0.95rem;
+  border-bottom: 2px solid transparent;
+  font-family: var(--headerFont);
+  font-size: 0.85rem;
+  font-weight: $semiBoldWeight;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--gray);
+  background: none;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.nav-link:hover {
+  color: var(--dark);
+}
+
+.nav-link[aria-current="page"] {
+  color: var(--dark);
+  border-bottom-color: var(--secondary);
+}
+
+.nav-toggle {
+  position: relative;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.nav-toggle span {
+  position: absolute;
+  left: 50%;
+  display: block;
+  width: 1.05rem;
+  height: 2px;
+  background: var(--darkgray);
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.nav-toggle span:nth-child(1) {
+  transform: translate(-50%, calc(-50% - 0.32rem));
+  top: 50%;
+}
+.nav-toggle span:nth-child(2) {
+  transform: translate(-50%, -50%);
+  top: 50%;
+}
+.nav-toggle span:nth-child(3) {
+  transform: translate(-50%, calc(-50% + 0.32rem));
+  top: 50%;
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(1) {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.nav-toggle[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+.nav-toggle[aria-expanded="true"] span:nth-child(3) {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.nav-drawer {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  z-index: 999;
+  flex-direction: column;
+  gap: 0;
+  min-width: 11rem;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  box-shadow: var(--shadow-lg);
+}
+
+@media all and (max-width: 800px) {
+  .nav-drawer:not([hidden]) {
+    display: flex;
+  }
+}
+
+.nav-drawer .nav-link {
+  height: auto;
+  padding: 0.7em 0.9em;
+  border-bottom: 1px solid var(--lightgray);
+  border-left: 2px solid transparent;
+}
+
+.nav-drawer .nav-link[aria-current="page"] {
+  border-bottom-color: var(--lightgray);
+  border-left-color: var(--secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-link,
+  .nav-toggle span {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Column gutters
+--------------------------------------------------------------------------- */
+
+@media all and ($desktop) {
+  .page > #quartz-body {
+    grid-template-columns: 260px auto 260px;
+    column-gap: 1.75rem;
+  }
+}
+
+@media all and ($tablet) {
+  .page > #quartz-body {
+    grid-template-columns: 220px auto;
+    column-gap: 1.5rem;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Registration-mark treatment — ported from the design's own styles.css.
+--------------------------------------------------------------------------- */
+
+.blueprint {
+  position: relative;
+}
+
+.blueprint > .corner {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  color: color-mix(in srgb, var(--dark) 55%, transparent);
+}
+
+.blueprint > .corner::before,
+.blueprint > .corner::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+}
+
+.blueprint > .corner::before {
+  left: 5px;
+  top: 0;
+  width: 1px;
+  height: 100%;
+}
+
+.blueprint > .corner::after {
+  top: 5px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+}
+
+.blueprint > .corner.tl {
+  top: -6px;
+  left: -6px;
+}
+.blueprint > .corner.tr {
+  top: -6px;
+  right: -6px;
+}
+.blueprint > .corner.bl {
+  bottom: -6px;
+  left: -6px;
+}
+.blueprint > .corner.br {
+  bottom: -6px;
+  right: -6px;
+}
+
+/* ---------------------------------------------------------------------------
+   Shared mono/label utilities used across every bp-* view.
+--------------------------------------------------------------------------- */
+
+.bp-eyebrow {
+  font-family: var(--codeFont);
+  font-size: 0.7rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.bp-label {
+  font-family: var(--codeFont);
+  font-size: 0.66rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.bp-hr {
+  border: 0;
+  border-top: 1px solid var(--lightgray);
+}
+
+/* ---------------------------------------------------------------------------
+   Homepage
+--------------------------------------------------------------------------- */
+
+.bp-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  border-bottom: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.bp-hero-main {
+  padding: 3rem 2.5rem 3rem 0;
+  border-right: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    padding: 2rem 0;
+    border-right: none;
+  }
+}
+
+.bp-hero-main h1 {
+  margin: 1.1rem 0 0;
+  font-size: 3.6rem;
+  line-height: 0.98;
+  text-transform: uppercase;
+  max-width: 15ch;
+
+  @media all and ($mobile) {
+    font-size: 2.4rem;
+  }
+}
+
+.bp-hero-main p {
+  margin: 1.25rem 0 0;
+  font-size: 1.1rem;
+  line-height: 1.65;
+  max-width: 60ch;
+  color: var(--darkgray);
+}
+
+.bp-hero-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.bp-stats-rail {
+  display: flex;
+  flex-direction: column;
+}
+
+.bp-stat {
+  padding: 1rem 0 1rem 1.5rem;
+  border-bottom: 1px solid var(--lightgray);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.bp-stat-label {
+  font-family: var(--codeFont);
+  font-size: 0.66rem;
+  line-height: 1.4;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.bp-stat-value {
+  font-family: var(--headerFont);
+  font-size: 1.9rem;
+  line-height: 1;
+  color: var(--secondary);
+}
+
+.bp-activity-chart {
+  padding: 1rem 0 0 1.5rem;
+
+  & .bp-label {
+    margin-bottom: 0.75rem;
+  }
+}
+
+.bp-activity-bars {
+  display: flex;
+  gap: 3px;
+  align-items: flex-end;
+  height: 44px;
+}
+
+.bp-activity-bar {
+  flex: 1;
+  background: var(--lightgray);
+  min-height: 3px;
+}
+
+.bp-activity-bar[data-level="high"] {
+  background: var(--secondary);
+}
+
+.bp-activity-bar[data-level="mid"] {
+  background: var(--tertiary);
+}
+
+.bp-graph-section {
+  padding: 2rem 0 0;
+}
+
+.bp-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1rem;
+
+  & h2 {
+    margin: 0;
+    font-size: 1.55rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+.bp-section-link {
+  font-family: var(--codeFont);
+  font-size: 0.7rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--secondary);
+
+  &:hover {
+    color: var(--tertiary);
+  }
+}
+
+/* The stock Graph component's own right-rail wrapper (note pages) — square
+   off its rounded default chrome and re-label the heading mono/tracked, to
+   match every other bp-* panel. The component itself (D3-force/PixiJS
+   render, drag/zoom/click-to-navigate) is untouched. */
+.graph > h3 {
+  font-family: var(--codeFont);
+  font-size: 0.68rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.graph > .graph-outer {
+  border-radius: 0;
+  border-color: var(--lightgray);
+}
+
+.graph > .global-graph-outer > .global-graph-container {
+  border-radius: 0;
+}
+
+/* Mini/local/full graph panels — plain .graph-container[data-cfg] divs sized
+   per context. The Graph plugin auto-inits any element matching this
+   selector; only sizing/chrome is ours to control. */
+.bp-graph-panel {
+  position: relative;
+  overflow: hidden;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+}
+
+.bp-graph-panel.bp-graph-mini {
+  height: 320px;
+}
+
+.bp-graph-panel.bp-graph-local {
+  height: 200px;
+  cursor: pointer;
+}
+
+.bp-graph-panel.bp-graph-full {
+  height: 600px;
+}
+
+.bp-graph-panel .graph-container {
+  width: 100%;
+  height: 100%;
+}
+
+.bp-graph-caption {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  line-height: 1.6;
+  letter-spacing: 0.05em;
+  color: var(--gray);
+  pointer-events: none;
+}
+
+.bp-two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 0;
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.bp-recent-main {
+  padding: 1.75rem 2.5rem 2.5rem 0;
+  border-right: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    padding: 1.75rem 0;
+    border-right: none;
+  }
+}
+
+.bp-recent-main h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.55rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bp-recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bp-recent-row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  align-items: baseline;
+  padding: 1rem 0.5rem 1rem 0;
+  border-top: 1px solid var(--lightgray);
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--highlight);
+  }
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.35rem;
+  }
+}
+
+.bp-recent-date {
+  font-family: var(--codeFont);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--gray);
+}
+
+.bp-recent-title {
+  font-family: var(--headerFont);
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.bp-recent-blurb {
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--gray);
+  max-width: 64ch;
+}
+
+.bp-folder-chip {
+  align-self: start;
+  font-family: var(--codeFont);
+  font-size: 0.62rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--lightgray);
+  color: var(--gray);
+  white-space: nowrap;
+}
+
+.bp-aside {
+  padding: 1.75rem 0 2.5rem 1.75rem;
+
+  @media all and ($mobile) {
+    padding: 1.75rem 0;
+  }
+}
+
+.bp-due-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.75rem;
+}
+
+.bp-folder-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bp-folder-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--lightgray);
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--secondary);
+  }
+}
+
+.bp-folder-row-name {
+  font-family: var(--headerFont);
+  font-size: 1.05rem;
+}
+
+.bp-folder-row-count {
+  font-family: var(--codeFont);
+  font-size: 0.68rem;
+  color: var(--gray);
+}
+
+/* ---------------------------------------------------------------------------
+   Recap card / rail (build-time skeleton, hydrated client-side)
+--------------------------------------------------------------------------- */
+
+.bp-recap-card {
+  display: block;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--lightgray);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--highlight);
+  }
+}
+
+.bp-recap-card[hidden] {
+  display: none;
+}
+
+.bp-recap-when {
+  font-family: var(--codeFont);
+  font-size: 0.62rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.bp-recap-title {
+  margin-top: 0.5rem;
+  font-family: var(--headerFont);
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.bp-recap-empty {
+  font-size: 0.85rem;
+  color: var(--gray);
+}
+
+/* Note aside "Recap this note" card. */
+.bp-recap-panel {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--lightgray);
+}
+
+.bp-recap-panel p {
+  margin: 0.5rem 0 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--gray);
+}
+
+/* ---------------------------------------------------------------------------
+   Graph page
+--------------------------------------------------------------------------- */
+
+.bp-graph-page-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 0;
+  border-bottom: 1px solid var(--lightgray);
+  padding: 2.25rem 0 1.25rem;
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.bp-graph-page-head h1 {
+  margin: 0;
+  font-size: 2.9rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.bp-graph-page-head p {
+  margin: 0.9rem 0 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  max-width: 58ch;
+  color: var(--darkgray);
+}
+
+.bp-graph-meta {
+  padding-left: 1.75rem;
+  border-left: 1px solid var(--lightgray);
+  font-family: var(--codeFont);
+  font-size: 0.7rem;
+  line-height: 1.9;
+  color: var(--gray);
+
+  @media all and ($mobile) {
+    padding-left: 0;
+    border-left: none;
+    margin-top: 1rem;
+  }
+}
+
+.bp-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--lightgray);
+  border-left: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bp-hub-cell {
+  padding: 1.1rem 1.25rem;
+  border-right: 1px solid var(--lightgray);
+  border-bottom: 1px solid var(--lightgray);
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--highlight);
+  }
+}
+
+.bp-hub-meta {
+  font-family: var(--codeFont);
+  font-size: 0.62rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.bp-hub-title {
+  margin-top: 0.5rem;
+  font-family: var(--headerFont);
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+/* ---------------------------------------------------------------------------
+   Folders hub (/folders) and Notes index (/notes)
+--------------------------------------------------------------------------- */
+
+.bp-page-head {
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--lightgray);
+  max-width: 640px;
+}
+
+.bp-page-head h1 {
+  margin: 0;
+  font-size: 2.9rem;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.bp-page-head p {
+  margin: 0.85rem 0 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--darkgray);
+}
+
+.bp-folder-groups {
+  padding: 0.5rem 0 3.5rem;
+}
+
+.bp-folder-group {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 2rem;
+  padding: 1.6rem 0;
+  border-bottom: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+}
+
+.bp-folder-group-name {
+  margin: 0;
+  font-family: var(--codeFont);
+  font-size: 0.7rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.bp-folder-note-row {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--lightgray);
+  transition: color 0.15s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    color: var(--secondary);
+  }
+}
+
+.bp-folder-note-title {
+  font-family: var(--headerFont);
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.bp-folder-note-blurb {
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--gray);
+  max-width: 70ch;
+}
+
+.bp-notes-list {
+  list-style: none;
+  margin: 0;
+  padding: 1.5rem 0 3.5rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Tag directory (/tags/index)
+--------------------------------------------------------------------------- */
+
+/* Hide the default TagPage listing markup on the one page TagDirectory owns —
+   scoped via :has() so only /tags/index is affected, never /tags/<tag>. */
+.page-header:has(.bp-tag-directory) + .popover-hint {
+  display: none;
+}
+
+.bp-tag-directory {
+  grid-column: 1 / -1;
+}
+
+.bp-tag-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-left: 1px solid var(--lightgray);
+  margin-top: 0.5rem;
+
+  @media all and ($tablet) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media all and ($mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bp-tag-cell {
+  padding: 1rem 1.1rem;
+  border-right: 1px solid var(--lightgray);
+  border-bottom: 1px solid var(--lightgray);
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--highlight);
+  }
+}
+
+.bp-tag-cell-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.bp-tag-name {
+  font-family: var(--headerFont);
+  font-size: 1.1rem;
+}
+
+.bp-tag-count {
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  color: var(--gray);
+}
+
+.bp-tag-bar-track {
+  height: 3px;
+  margin-top: 0.6rem;
+  background: var(--lightgray);
+}
+
+.bp-tag-bar-fill {
+  height: 3px;
+  background: var(--secondary);
+}
+
+/* ---------------------------------------------------------------------------
+   Note siblings (left rail)
+--------------------------------------------------------------------------- */
+
+.bp-note-siblings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.bp-note-sibling {
+  padding: 0.5rem 0 0.5rem 0.6rem;
+  border-left: 2px solid var(--lightgray);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--gray);
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--secondary);
+  }
+}
+
+.bp-note-sibling[aria-current="page"] {
+  border-left-color: var(--secondary);
+  color: var(--dark);
+}
+
+/* ---------------------------------------------------------------------------
+   Linked notes (backlinks, restyled into an afterBody grid)
+--------------------------------------------------------------------------- */
+
+.page > #quartz-body .center > .page-footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--lightgray);
+}
+
+.backlinks {
+  flex-direction: column;
+}
+
+.backlinks > h3 {
+  margin: 0 0 0.75rem;
+  font-family: var(--codeFont);
+  font-size: 0.68rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.backlinks > ul.overflow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--lightgray);
+  border-left: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.backlinks > ul.overflow > li {
+  border-right: 1px solid var(--lightgray);
+  border-bottom: 1px solid var(--lightgray);
+}
+
+.backlinks > ul.overflow > li > a {
+  display: block;
+  padding: 1rem 1.1rem;
+  background-color: transparent;
+  font-family: var(--headerFont);
+  font-size: 1.1rem;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--highlight);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Quiz overlay (recap "quiz me" flow)
+--------------------------------------------------------------------------- */
+
+.bp-quiz-overlay {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+}
+
+.bp-quiz-overlay[hidden] {
+  display: none;
+}
+
+.bp-quiz-progress {
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.bp-quiz-prompt {
+  margin: 0.85rem 0 0;
+  font-family: var(--headerFont);
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.bp-quiz-hint {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--gray);
+}
+
+.bp-quiz-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.bp-quiz-actions[hidden] {
+  display: none;
+}
+
+.bp-quiz-done {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--gray);
+}
+
+.bp-quiz-done[hidden] {
+  display: none;
+}
+
+/* article body is hidden while a quiz is running */
+article.bp-quiz-active > *:not(.bp-quiz-overlay) {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Buttons / tags — square, transparent, hairline-bordered.
+--------------------------------------------------------------------------- */
+
+.bp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.75rem 1.3rem;
+  border: 1px solid var(--lightgray);
+  font-family: var(--headerFont);
+  font-size: 0.85rem;
+  font-weight: $semiBoldWeight;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dark);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.bp-btn:hover {
+  background-color: var(--highlight);
+}
+
+.bp-btn-primary {
+  border-color: var(--secondary);
+  background-color: var(--secondary);
+  color: var(--light);
+}
+
+.bp-btn-primary:hover {
+  background-color: var(--tertiary);
+  border-color: var(--tertiary);
+}
+
+.bp-tag-pill {
+  padding: 4px 9px;
+  border: 1px solid var(--lightgray);
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gray);
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.bp-tag-pill:hover {
+  border-color: var(--secondary);
+  color: var(--secondary);
+}
+
+/* ---------------------------------------------------------------------------
+   Code blocks (PageChrome copy-button bar)
+--------------------------------------------------------------------------- */
+
+figure[data-rehype-pretty-code-figure] {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--lightgray);
+  border-radius: 0;
+  box-shadow: none;
+
+  & > pre {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+  }
+}
+
+.code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 0.5rem 0.4rem 0.9rem;
+  border-bottom: 1px solid var(--lightgray);
+  background-color: var(--highlight);
+}
+
+.code-lang {
+  font-family: var(--codeFont);
+  font-size: 0.68rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.code-copy {
+  padding: 0.25rem 0.65rem;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: var(--gray);
+  font-family: var(--headerFont);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color 0.2s var(--ease-out),
+    border-color 0.2s var(--ease-out);
+
+  &:hover {
+    color: var(--secondary);
+    border-color: var(--lightgray);
+  }
+
+  &.copied {
+    color: var(--secondary);
+    border-color: var(--secondary);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Reading progress
+--------------------------------------------------------------------------- */
+
+.reading-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 95;
+  height: 2px;
+  pointer-events: none;
+
+  & > span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--secondary);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Motion
+--------------------------------------------------------------------------- */
+
+@keyframes chrome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page > #quartz-body .center > article,
+.page > #quartz-body .center > .page-header .popover-hint {
+  animation: chrome-rise 0.4s var(--ease-out) both;
+}
+
+a.internal {
+  transition: color 0.15s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a.internal,
+  .code-copy,
+  .page-header .darkmode,
+  .page-header .search > .search-button,
+  .bp-recap-card,
+  .bp-recent-row,
+  .bp-hub-cell,
+  .bp-tag-cell,
+  .bp-folder-row,
+  .bp-folder-note-row,
+  .backlinks > ul.overflow > li > a {
+    transition: none;
+  }
+
+  .page > #quartz-body .center > article,
+  .page > #quartz-body .center > .page-header .popover-hint {
+    animation: none;
+  }
+}

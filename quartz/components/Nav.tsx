@@ -15,10 +15,21 @@ interface NavOptions {
 const defaultOptions: NavOptions = {
   links: [
     { title: "Home", slug: "" },
-    { title: "Go", slug: "go" },
-    { title: "Jenkins", slug: "jenkins" },
+    { title: "Graph", slug: "graph" },
+    { title: "Folders", slug: "folders" },
+    { title: "Reading", slug: "notes" },
     { title: "Tags", slug: "tags" },
   ],
+}
+
+/** Normalizes a nav link's target slug ("" for home) against the current page's
+ * slug so the right tab reads as active — the home link and the tag directory
+ * both need special-casing since they don't match by simple prefix. */
+function isActiveLink(linkSlug: string, currentSlug: string): boolean {
+  const current = currentSlug.replace(/\/index$/, "")
+  if (linkSlug === "") return current === "index" || current === ""
+  if (linkSlug === "tags") return current === "tags" || current.startsWith("tags/")
+  return current === linkSlug
 }
 
 export default ((userOpts?: Partial<NavOptions>) => {
@@ -29,9 +40,14 @@ export default ((userOpts?: Partial<NavOptions>) => {
     // from a subpath (e.g. a GitHub Pages project page) as well as from a root.
     const root = pathToRoot(fileData.slug!)
     const href = (slug: string) => (slug === "" ? root : `${root}/${slug}`)
+    const currentSlug = fileData.slug ?? ""
 
     const links = opts.links.map(({ title, slug }) => (
-      <a href={href(slug)} class="nav-link">
+      <a
+        href={href(slug)}
+        class="nav-link"
+        aria-current={isActiveLink(slug, currentSlug) ? "page" : undefined}
+      >
         {title}
       </a>
     ))

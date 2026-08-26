@@ -1,0 +1,25 @@
+{
+  "name": "note-siblings",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./components": "./dist/components/index.js"
+  },
+  "quartz": {
+    "name": "note-siblings",
+    "displayName": "Note Siblings",
+    "category": "component",
+    "version": "1.0.0",
+    "defaultOrder": 50,
+    "defaultEnabled": true,
+    "defaultOptions": {},
+    "components": {
+      "NoteSiblings": {
+        "displayName": "Note Siblings",
+        "defaultPosition": "left",
+        "defaultPriority": 10
+      }
+    }
+  }
+}
