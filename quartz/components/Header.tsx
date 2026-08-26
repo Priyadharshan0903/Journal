@@ -1,17 +1,9 @@
 import { QuartzComponent, QuartzComponentConstructor, QuartzComponentProps } from "./types"
 
-/**
- * Real content notes only — excludes the four Blueprint virtual pages
- * (index/graph/folders/notes) and every tag page, so the header's count
- * matches what NotesIndex/FolderDirectory actually list.
- */
-function isRealNote(slug: string | undefined): boolean {
-  if (!slug) return false
-  if (slug === "index" || slug === "graph" || slug === "folders" || slug === "notes") return false
-  if (slug.startsWith("tags/")) return false
-  if (slug.endsWith("/index")) return false
-  return true
-}
+// Shared with the directories plugin so the header's count can't drift from
+// what NotesIndex / FolderDirectory / the homepage stats actually list — it
+// already had, by omitting the 404 exclusion.
+import { isRealNote } from "../plugins/directories/notes"
 
 const Header: QuartzComponent = ({ children, allFiles }: QuartzComponentProps) => {
   const notes = allFiles.filter((f) => isRealNote(f.slug))
@@ -27,15 +19,13 @@ const Header: QuartzComponent = ({ children, allFiles }: QuartzComponentProps) =
   ) : null
 }
 
+// Topbar appearance lives in quartz/styles/blueprint.scss under
+// `.page-header header`. The pre-redesign rules that used to live here
+// (margin: 2rem 0, gap: 1.5rem) were shadowed by that higher-specificity
+// selector rather than fighting it — unlike Nav's, which collided at equal
+// specificity and silently won because component CSS links last. Removed
+// anyway so there is one source of truth per component.
 Header.css = `
-header {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  margin: 2rem 0;
-  gap: 1.5rem;
-}
-
 header h1 {
   margin: 0;
   flex: auto;

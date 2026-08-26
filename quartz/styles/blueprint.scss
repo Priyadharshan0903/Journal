@@ -17,10 +17,29 @@
    NoteSiblings / recap components.
 --------------------------------------------------------------------------- */
 
-$pageMax: 1500px;
+/* The design lays every view out inside one centred container —
+   `<main style="max-width:1240px;margin:0 auto;padding:0 28px">` — and the
+   fixed header uses the same measure so the wordmark lines up with the hero
+   below it. Both the topbar padding and the body cap key off this.
+   Widened past the design's own 1240px so the layout actually uses a modern
+   display; prose stays readable because the article body is capped
+   independently at $proseMeasure below, which is what the design does too
+   (its blocks carry their own `max-width:66ch`). */
+$pageMax: 1600px;
+$pageGutter: 1.75rem; // 28px, the design's own main padding
+/* Reading measure. NB: the design's literal `66ch` is misleading — `ch` is the
+   width of "0", and Barlow's digits are far wider than its lowercase, so 66ch
+   lands at ~820px / ~120 characters per line, roughly double the comfortable
+   range. In the design that cap almost never binds: its article sits in a
+   ~700px column inside a 1240px shell, so real prose there is ~620px. Since we
+   widened the shell, the cap has to do the work the column used to, expressed
+   in a unit that actually tracks the text. 32rem ≈ 75 characters. */
+$proseMeasure: 32rem;
 
 :root {
-  --topbar-h: 3.9rem;
+  --topbar-h: 3.625rem; // 58px, the design's exact header height
+  --bp-grid-cell: 64px;
+  --bp-grid-line: rgb(29 31 32 / 5%);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 12%);
   --shadow-md: 0 1px 2px rgb(0 0 0 / 12%), 0 6px 16px -4px rgb(0 0 0 / 16%);
@@ -34,6 +53,51 @@ $pageMax: 1500px;
   --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 6px 16px -4px rgb(0 0 0 / 45%);
   --shadow-lg: 0 1px 2px rgb(0 0 0 / 35%), 0 12px 32px -8px rgb(0 0 0 / 55%);
   --surface-veil: 88%;
+  --bp-grid-line: rgb(232 233 234 / 4%);
+}
+
+/* Blueprint grid — the drafting-paper surface the whole theme is named for.
+   Deliberately additive: the design source has no pattern/gradient/svg layer
+   of its own (the grid behind the mock is the Design tool's preview canvas),
+   but a hairline grid is the one cue that makes the rest of the treatment —
+   registration marks, hairline rules, mono labels — read as a technical
+   drawing rather than just a dark theme. Fixed so it doesn't scroll away.
+
+   Scoped to the five index views only. Behind a wall of body copy the same
+   grid stops reading as texture and starts competing with the text, so note,
+   folder and tag pages — anything you actually sit and read — stay flat. */
+body[data-slug="index"]::before,
+body[data-slug="graph"]::before,
+body[data-slug="folders"]::before,
+body[data-slug="notes"]::before,
+body[data-slug="tags/index"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--bp-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--bp-grid-line) 1px, transparent 1px);
+  background-size: var(--bp-grid-cell) var(--bp-grid-cell);
+}
+
+/* Lift real content above the grid layer. */
+#quartz-root.page {
+  position: relative;
+  z-index: 1;
+}
+
+/* Design system convention (design-tokens.css): suppress the browser's native
+   focus ring — Chromium renders `outline: auto` with rounded corners, which
+   reads as a stray oval around nav links/buttons after a click — and only
+   show a clean, square-cornered ring for keyboard navigation. */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--secondary);
+  outline-offset: 2px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -42,8 +106,6 @@ $pageMax: 1500px;
 
 .page article {
   & h1,
-  & h2,
-  & h3,
   & h4,
   & h5,
   & h6 {
@@ -51,24 +113,115 @@ $pageMax: 1500px;
     text-transform: none;
   }
 
-  & > h1:first-child {
-    font-size: 2.6rem;
-    line-height: 1.05;
-    max-width: 26ch;
+  /* Hold the reading measure independent of the (now much wider) column, the
+     way the design caps each of its body blocks at 66ch rather than letting
+     prose run the full width of the container. Block-level children only —
+     tables and code blocks are exempt below since they carry their own
+     horizontal scroll.
+
+     Scoped away from the Blueprint index views: their <article> is a layout
+     surface, not prose, and its direct children include the full-width notes
+     and folder lists. Capping those to a reading measure squeezed the whole
+     listing into the left third of the page. */
+  &:not([class*="bp-"]) {
+    & > p,
+    & > ul,
+    & > ol,
+    & > blockquote,
+    & > h2,
+    & > h3,
+    & > h4,
+    & > h5,
+    & > h6 {
+      max-width: $proseMeasure;
+    }
+  }
+
+  /* Section heading ("## Why it matters" etc) — the design's one note-body
+     heading treatment: small mono uppercase tracked label, accent-colored,
+     hung off a top rule. Real content only ever nests one level deeper
+     (h3), which keeps its plain condensed styling from base.scss so it
+     still reads as subordinate to h2. */
+  & h2 {
+    margin: 2.625rem 0 0.875rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--lightgray);
+    font-family: var(--codeFont);
+    font-size: 0.9375rem;
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--secondary);
+  }
+
+  & h3 {
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+
+  /* Lede — the first paragraph directly under the title, larger and closer
+     to heading color than the rest of the body copy. */
+  & > p:first-of-type {
+    font-size: 1.40625rem;
+    line-height: 1.55;
+    color: var(--dark);
+  }
+
+  & p {
+    font-size: 1.125rem;
+    line-height: 1.75;
   }
 
   & blockquote {
     position: relative;
     margin: 0 0 1.5rem;
-    padding: 1.1rem 1.3rem;
+    padding: 1.375rem 1.625rem;
     border: 1px solid var(--lightgray);
     border-left: 1px solid var(--lightgray);
     border-radius: 0;
     background: var(--highlight);
 
+    /* Registration-mark corners, reproduced without extra markup (markdown
+       gives us a plain <blockquote>, not the 4 <i class="corner"> nodes the
+       .blueprint mechanism elsewhere relies on) via 8 hairline gradients —
+       one vertical + one horizontal per corner, positioned the same way
+       .blueprint > .corner's own ::before/::after pair are. */
+    &::before {
+      content: "";
+      position: absolute;
+      inset: -6px;
+      pointer-events: none;
+      color: color-mix(in srgb, var(--dark) 55%, transparent);
+      background-repeat: no-repeat;
+      background-image:
+        linear-gradient(currentColor, currentColor), linear-gradient(currentColor, currentColor),
+        linear-gradient(currentColor, currentColor), linear-gradient(currentColor, currentColor),
+        linear-gradient(currentColor, currentColor), linear-gradient(currentColor, currentColor),
+        linear-gradient(currentColor, currentColor), linear-gradient(currentColor, currentColor);
+      background-size:
+        1px 11px,
+        11px 1px,
+        1px 11px,
+        11px 1px,
+        1px 11px,
+        11px 1px,
+        1px 11px,
+        11px 1px;
+      background-position:
+        left 5px top 0,
+        left 0 top 5px,
+        right 5px top 0,
+        right 0 top 5px,
+        left 5px bottom 0,
+        left 0 bottom 5px,
+        right 5px bottom 0,
+        right 0 bottom 5px;
+    }
+
     & p {
       margin: 0;
-      font-size: 1.05rem;
+      font-size: 1.1875rem;
+      line-height: 1.55;
       color: var(--dark);
     }
   }
@@ -79,12 +232,97 @@ $pageMax: 1500px;
   }
 
   & th {
-    font-family: var(--headerFont);
+    font-family: var(--codeFont);
     font-size: 0.75rem;
     letter-spacing: var(--mono-track);
     text-transform: uppercase;
     color: var(--gray);
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Page title (`@quartz-community/article-title`'s beforeBody <h1
+   class="article-title">) — this had no rule of its own at all, so every
+   note/folder/tag page title was falling all the way back to base.scss's
+   generic `h1 { font-size: 1.75rem }`. There's no page-type class to hook,
+   so the note-vs-topic split the design draws (note titles sentence-case at
+   52px, folder/tag titles uppercase at 64px) is done via the slug Quartz
+   already writes onto <body>: folder pages are always "<path>/index", tag
+   pages are always "tags/<name>".
+--------------------------------------------------------------------------- */
+
+.page-header .article-title {
+  margin: 0;
+  font-size: 3.25rem;
+  line-height: 1.02;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  max-width: 26ch;
+
+  @media all and ($mobile) {
+    font-size: 2.1rem;
+  }
+}
+
+body[data-slug$="/index"] .page-header .article-title,
+body[data-slug^="tags/"] .page-header .article-title {
+  font-size: 4rem;
+  line-height: 0.98;
+  text-transform: uppercase;
+  max-width: none;
+
+  @media all and ($mobile) {
+    font-size: 2.4rem;
+  }
+}
+
+/* TagDirectory renders its own <h1>Tags</h1> for tags/index and hides
+   TagContent's listing markup (below); article-title still fires for that
+   slug too (byPageType "tag" only excludes reader-mode), which otherwise
+   doubled the page title. */
+.page-header:has(.bp-tag-directory) .article-title {
+  display: none;
+}
+
+/* Breadcrumbs (`@quartz-community/breadcrumbs`) — another beforeBody element
+   with no rule of its own, defaulting to the vendor's plain/unstyled crumbs.
+   Design treats this as a mono metadata label, current segment accented. */
+.breadcrumb-container {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  font-family: var(--codeFont);
+  font-size: 0.656rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.breadcrumb-element a {
+  color: var(--gray);
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--secondary);
+  }
+}
+
+.breadcrumb-element:last-child a {
+  color: var(--secondary);
+}
+
+.breadcrumb-element p {
+  color: var(--gray);
+}
+
+/* Date / read-time line (`@quartz-community/content-meta`) — same story:
+   no rule of its own, so it rendered in the ambient body font instead of
+   the mono metadata treatment the design uses for every date/label. */
+.content-meta {
+  margin-top: 0;
+  font-family: var(--codeFont);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  color: var(--gray);
 }
 
 /* ---------------------------------------------------------------------------
@@ -109,16 +347,19 @@ $pageMax: 1500px;
   }
 }
 
-.page-header header {
+.page-header > header {
   position: fixed;
   inset: 0 0 auto 0;
   z-index: 90;
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0.75rem; // 12px, the design's identity-cluster gap
   height: var(--topbar-h);
   margin: 0;
+  /* A vendor plugin ships a bare `header { border-radius: 12px 12px 0 0 }`
+     for its own panel header, which leaks onto this one. Square it back. */
+  border-radius: 0;
   padding: 0 max(1.75rem, calc((100% - #{$pageMax}) / 2 + 1.75rem));
   border-bottom: 1px solid var(--lightgray);
   background-color: color-mix(in srgb, var(--light) var(--surface-veil), transparent);
@@ -132,14 +373,18 @@ $pageMax: 1500px;
     height: unset;
   }
 
-  .page-header header {
+  .page-header > header {
     padding: 0 1rem;
   }
 }
 
-.page-header header .page-title {
+/* Design groups the identity cluster tightly on the left —
+   `[P] Journal   REV 03 · 22 NOTES` at gap:12px — then pushes nav + search to
+   the far right via justify-content:space-between. The auto right margin that
+   used to sit here instead flung the build tag into the middle of the bar. */
+.page-header > header .page-title {
   order: 0;
-  margin: 0 auto 0 0;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -155,12 +400,12 @@ $pageMax: 1500px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     flex: none;
     border: 1px solid var(--secondary);
     font-family: var(--codeFont);
-    font-size: 0.65rem;
+    font-size: 0.6875rem;
     font-weight: 500;
     color: var(--secondary);
   }
@@ -178,7 +423,9 @@ $pageMax: 1500px;
 /* "REV NN · N NOTES" mono label, injected by Header.tsx next to the wordmark. */
 .bp-build-tag {
   order: 0;
-  margin: 0 auto 0 -0.75rem;
+  /* Sole auto margin in the bar: ends the left cluster, pushes nav + search
+     right. Matches the design's justify-content:space-between. */
+  margin: 0 auto 0 0;
   font-family: var(--codeFont);
   font-size: 0.68rem;
   letter-spacing: var(--mono-track);
@@ -191,11 +438,11 @@ $pageMax: 1500px;
   }
 }
 
-.page-header header .site-nav {
+.page-header > header .site-nav {
   order: 1;
 }
 
-.page-header header .flex-component {
+.page-header > header .flex-component {
   order: 2;
 }
 
@@ -229,25 +476,52 @@ $icon-moon: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill=
   display: none;
 }
 
+/* The design has no theme switcher at all, so its placement is ours to
+   decide. Sized to 36px to match the search button exactly and given a
+   permanent hairline box, so the two read as one pair of controls rather than
+   a solid button with a bare icon floating off its edge. Separated by a
+   hairline rule — the same divider language used everywhere else here. */
 .page-header .darkmode {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   padding: 0;
-  border: 1px solid transparent;
+  margin-left: 0.5rem;
+  border: 1px solid var(--lightgray);
   border-radius: 0;
   background-color: transparent;
   color: var(--gray);
   cursor: pointer;
   transition:
     color 0.15s ease,
-    border-color 0.15s ease;
+    border-color 0.15s ease,
+    background-color 0.15s ease;
 
   &:hover {
     color: var(--secondary);
-    border-color: var(--lightgray);
+    border-color: var(--secondary);
+    background-color: var(--highlight);
+  }
+}
+
+/* Divider between the search button and the theme toggle. Sits on the
+   toggle's own wrapper (the Flex component owns those inline-styled divs, so
+   there is no markup of ours to hang it on). */
+.page-header > header .flex-component > div:last-child {
+  position: relative;
+  padding-left: 0.5rem;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 20px;
+    background: var(--lightgray);
   }
 }
 
@@ -279,7 +553,7 @@ $icon-moon: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill=
   font-family: var(--headerFont);
   font-size: 0.85rem;
   font-weight: $semiBoldWeight;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   cursor: pointer;
   transition: background-color 0.15s ease;
@@ -294,6 +568,21 @@ $icon-moon: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill=
     font-family: inherit;
     font-size: inherit;
     line-height: 1;
+  }
+
+  /* "⌘K" hint — the search button is fixed markup from the vendored search
+     component (<button><svg/><p>Search</p></button>), so the hint the design
+     shows next to the label is faked the same way the "P" wordmark glyph
+     above is: a ::after pseudo-element, not real DOM. */
+  &::after {
+    content: "⌘K";
+    margin-left: 2px;
+    font-family: var(--codeFont);
+    font-size: 0.656rem;
+    font-weight: 400;
+    letter-spacing: normal;
+    text-transform: none;
+    opacity: 0.65;
   }
 
   &:hover {
@@ -337,12 +626,12 @@ nav.site-nav {
   display: flex;
   align-items: center;
   height: 100%;
-  padding: 0 0.95rem;
+  padding: 0 1rem; // 16px, design
   border-bottom: 2px solid transparent;
   font-family: var(--headerFont);
-  font-size: 0.85rem;
+  font-size: 0.875rem; // 14px, design
   font-weight: $semiBoldWeight;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   line-height: 1;
   color: var(--gray);
@@ -448,17 +737,49 @@ nav.site-nav {
    Column gutters
 --------------------------------------------------------------------------- */
 
+/* Quartz spreads its 3-column grid edge-to-edge; the design centres every view
+   in a 1240px measure. Cap and centre the grid itself so content stops
+   drifting right and matches the fixed header's own alignment above. */
+.page > #quartz-body {
+  max-width: $pageMax;
+  margin: 0 auto;
+  padding: 0 $pageGutter;
+
+  @media all and ($mobile) {
+    padding: 0 1rem;
+  }
+}
+
 @media all and ($desktop) {
   .page > #quartz-body {
-    grid-template-columns: 260px auto 260px;
+    grid-template-columns: 200px auto 280px;
     column-gap: 1.75rem;
   }
 }
 
 @media all and ($tablet) {
   .page > #quartz-body {
-    grid-template-columns: 220px auto;
+    grid-template-columns: 200px auto;
     column-gap: 1.5rem;
+  }
+}
+
+/* The five Blueprint index views have no rails at all in the design — their
+   left/right sidebars render as empty <div>s, so the grid would otherwise
+   reserve ~480px of dead gutter and shove the content off-centre. Drop to a
+   single column for exactly those slugs; note/folder/tag pages keep their
+   rails (siblings, local graph, TOC, recap). */
+body[data-slug="index"],
+body[data-slug="graph"],
+body[data-slug="folders"],
+body[data-slug="notes"],
+body[data-slug="tags/index"] {
+  & .page > #quartz-body {
+    display: block;
+  }
+
+  & .page > #quartz-body > .sidebar {
+    display: none;
   }
 }
 
@@ -565,14 +886,15 @@ nav.site-nav {
 }
 
 .bp-hero-main h1 {
-  margin: 1.1rem 0 0;
-  font-size: 3.6rem;
-  line-height: 0.98;
+  margin: 1.375rem 0 0;
+  font-size: 4.75rem;
+  line-height: 0.95;
+  letter-spacing: 0.005em;
   text-transform: uppercase;
   max-width: 15ch;
 
   @media all and ($mobile) {
-    font-size: 2.4rem;
+    font-size: 2.75rem;
   }
 }
 
@@ -616,7 +938,7 @@ nav.site-nav {
 
 .bp-stat-value {
   font-family: var(--headerFont);
-  font-size: 1.9rem;
+  font-size: 2.125rem;
   line-height: 1;
   color: var(--secondary);
 }
@@ -945,8 +1267,9 @@ nav.site-nav {
 
 .bp-graph-page-head h1 {
   margin: 0;
-  font-size: 2.9rem;
+  font-size: 3.5rem;
   line-height: 1;
+  letter-spacing: 0.01em;
   text-transform: uppercase;
 }
 
@@ -1022,7 +1345,7 @@ nav.site-nav {
 
 .bp-page-head h1 {
   margin: 0;
-  font-size: 2.9rem;
+  font-size: 3.5rem;
   letter-spacing: 0.01em;
   text-transform: uppercase;
 }
@@ -1041,9 +1364,134 @@ nav.site-nav {
 .bp-folder-group {
   display: grid;
   grid-template-columns: 180px minmax(0, 1fr);
-  gap: 2rem;
-  padding: 1.6rem 0;
+  gap: 2.25rem;
+  padding: 1.75rem 0;
+  border-top: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+.bp-folder-group:last-child {
   border-bottom: 1px solid var(--lightgray);
+}
+
+/* Sticky so the folder name and its stats stay in view while a long folder
+   scrolls past — the label column is otherwise dead space on tall groups. */
+.bp-folder-group-head {
+  position: sticky;
+  top: calc(var(--topbar-h) + 1.5rem);
+  align-self: start;
+  padding-top: 0.2rem;
+
+  @media all and ($mobile) {
+    position: static;
+  }
+}
+
+.bp-folder-group-name {
+  margin: 0;
+  font-family: var(--codeFont);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.bp-folder-group-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.5rem;
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gray);
+
+  @media all and ($mobile) {
+    flex-direction: row;
+    gap: 0.75rem;
+  }
+}
+
+.bp-folder-note-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bp-folder-note-list > li + li > .bp-note-entry {
+  border-top: 1px solid var(--lightgray);
+}
+
+/* /notes — month buckets in the design's 180px-mono-label-column idiom
+   (borrowed from its topic view), with each entry laid out like the design's
+   search result: title/blurb/tags left, folder + date + link count right. */
+
+.bp-notes-group {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 2.25rem;
+  padding: 1.75rem 0;
+  border-top: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+.bp-notes-group:last-of-type {
+  border-bottom: 1px solid var(--lightgray);
+  margin-bottom: 3.5rem;
+}
+
+.bp-notes-group-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding-top: 0.2rem;
+  font-family: var(--codeFont);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--secondary);
+  border: 0;
+}
+
+.bp-notes-group-count {
+  color: var(--gray);
+}
+
+.bp-notes-group-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bp-note-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 1.75rem;
+  padding: 1rem 0.5rem 1rem 0;
+  background: none;
+  color: inherit;
+  transition: background-color 0.15s ease;
+
+  & + & {
+    border-top: 1px solid var(--lightgray);
+  }
+
+  &:hover {
+    background: var(--highlight);
+  }
 
   @media all and ($mobile) {
     grid-template-columns: minmax(0, 1fr);
@@ -1051,47 +1499,70 @@ nav.site-nav {
   }
 }
 
-.bp-folder-group-name {
-  margin: 0;
-  font-family: var(--codeFont);
-  font-size: 0.7rem;
-  letter-spacing: var(--mono-track);
-  text-transform: uppercase;
+.bp-notes-group-list > li + li > .bp-note-entry {
+  border-top: 1px solid var(--lightgray);
+}
+
+.bp-note-entry-title {
+  font-family: var(--headerFont);
+  font-size: 1.375rem;
+  font-weight: $semiBoldWeight;
+  line-height: 1.16;
+  color: var(--dark);
+}
+
+.bp-note-entry:hover .bp-note-entry-title {
   color: var(--secondary);
 }
 
-.bp-folder-note-row {
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--lightgray);
-  transition: color 0.15s ease;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &:hover {
-    color: var(--secondary);
-  }
-}
-
-.bp-folder-note-title {
-  font-family: var(--headerFont);
-  font-size: 1.35rem;
-  line-height: 1.15;
-}
-
-.bp-folder-note-blurb {
-  margin-top: 0.35rem;
-  font-size: 0.95rem;
+.bp-note-entry-blurb {
+  max-width: 78ch;
+  margin: 0.375rem 0 0;
+  font-size: 0.9375rem;
   line-height: 1.55;
   color: var(--gray);
-  max-width: 70ch;
 }
 
-.bp-notes-list {
-  list-style: none;
-  margin: 0;
-  padding: 1.5rem 0 3.5rem;
+.bp-note-entry-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.55rem;
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+/* Right rail of the row: right-aligned mono metadata, folder accented so the
+   eye can scan folders down the column. */
+.bp-note-entry-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: right;
+  white-space: nowrap;
+
+  @media all and ($mobile) {
+    align-items: flex-start;
+    flex-direction: row;
+    gap: 0.75rem;
+  }
+}
+
+.bp-note-entry-folder {
+  color: var(--secondary);
+}
+
+.bp-note-entry-date,
+.bp-note-entry-links {
+  color: var(--gray);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1188,6 +1659,40 @@ nav.site-nav {
 .bp-note-sibling[aria-current="page"] {
   border-left-color: var(--secondary);
   color: var(--dark);
+}
+
+/* ---------------------------------------------------------------------------
+   Table of contents (vendor `@quartz-community/table-of-contents`, right
+   rail) — had no rule of its own, so both the "ON THIS PAGE" header and the
+   entries themselves were falling back to the component's own generic
+   @layer-wrapped CSS. Entries mirror .bp-note-sibling's left-border-mark
+   treatment, which is exactly what the design uses for its TOC rows too.
+--------------------------------------------------------------------------- */
+
+.toc button.toc-header h3 {
+  font-family: var(--codeFont);
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.toc ul.toc-content.overflow > li > a {
+  display: block;
+  padding: 0.4375rem 0 0.4375rem 0.625rem;
+  border-left: 2px solid var(--lightgray);
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--gray);
+  opacity: 1;
+  transition: color 0.15s ease;
+}
+
+.toc ul.toc-content.overflow > li > a.in-view {
+  border-left-color: var(--secondary);
+  color: var(--dark);
+  opacity: 1;
 }
 
 /* ---------------------------------------------------------------------------
@@ -1404,9 +1909,9 @@ figure[data-rehype-pretty-code-figure] {
   border: 1px solid transparent;
   background-color: transparent;
   color: var(--gray);
-  font-family: var(--headerFont);
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
+  font-family: var(--codeFont);
+  font-size: 0.625rem;
+  letter-spacing: var(--mono-track);
   text-transform: uppercase;
   cursor: pointer;
   transition:

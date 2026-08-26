@@ -28,6 +28,7 @@ import {
 function isRealNote(slug) {
   if (!slug) return false;
   if (slug === "index" || slug === "graph" || slug === "folders" || slug === "notes") return false;
+  if (slug === "404") return false;
   if (slug.startsWith("tags/")) return false;
   if (slug.endsWith("/index")) return false;
   return true;

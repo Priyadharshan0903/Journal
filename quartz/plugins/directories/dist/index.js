@@ -28,6 +28,7 @@ import {
 function isRealNote(slug) {
   if (!slug) return false;
   if (slug === "index" || slug === "graph" || slug === "folders" || slug === "notes") return false;
+  if (slug === "404") return false;
   if (slug.startsWith("tags/")) return false;
   if (slug.endsWith("/index")) return false;
   return true;
@@ -366,22 +367,84 @@ var FolderDirectory = ({ fileData, allFiles }) => {
       /* @__PURE__ */ jsx4("h1", { children: "Folders" }),
       /* @__PURE__ */ jsx4("p", { children: "Every note sits in exactly one folder \u2014 browse by where it lives instead of by topic." })
     ] }),
-    /* @__PURE__ */ jsx4("section", { class: "bp-folder-groups", children: groups.map((g) => /* @__PURE__ */ jsxs4("div", { class: "bp-folder-group", children: [
-      /* @__PURE__ */ jsx4("h3", { class: "bp-folder-group-name", children: g.label }),
-      /* @__PURE__ */ jsx4("div", { children: g.notes.map((n) => /* @__PURE__ */ jsxs4("a", { class: "bp-folder-note-row", href: resolveRelative(slug, n.slug), children: [
-        /* @__PURE__ */ jsx4("div", { class: "bp-folder-note-title", children: n.title }),
-        n.description && /* @__PURE__ */ jsx4("div", { class: "bp-folder-note-blurb", children: n.description })
-      ] })) })
-    ] })) })
+    /* @__PURE__ */ jsx4("section", { class: "bp-folder-groups", children: groups.map((g) => {
+      const last = g.notes[0]?.created;
+      return /* @__PURE__ */ jsxs4("div", { class: "bp-folder-group", children: [
+        /* @__PURE__ */ jsxs4("div", { class: "bp-folder-group-head", children: [
+          /* @__PURE__ */ jsx4("h3", { class: "bp-folder-group-name", children: g.label }),
+          /* @__PURE__ */ jsxs4("div", { class: "bp-folder-group-meta", children: [
+            /* @__PURE__ */ jsxs4("span", { children: [
+              g.notes.length,
+              " ",
+              g.notes.length === 1 ? "note" : "notes"
+            ] }),
+            last && /* @__PURE__ */ jsxs4("span", { children: [
+              "Last ",
+              formatDate(last)
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx4("ul", { class: "bp-folder-note-list", children: g.notes.map((n) => /* @__PURE__ */ jsx4("li", { children: /* @__PURE__ */ jsxs4("a", { class: "bp-note-entry", href: resolveRelative(slug, n.slug), children: [
+          /* @__PURE__ */ jsxs4("div", { class: "bp-note-entry-main", children: [
+            /* @__PURE__ */ jsx4("div", { class: "bp-note-entry-title", children: n.title }),
+            n.description && /* @__PURE__ */ jsx4("p", { class: "bp-note-entry-blurb", children: n.description }),
+            n.tags.length > 0 && /* @__PURE__ */ jsx4("div", { class: "bp-note-entry-tags", children: n.tags.slice(0, 5).map((t) => /* @__PURE__ */ jsxs4("span", { children: [
+              "#",
+              t
+            ] })) })
+          ] }),
+          /* @__PURE__ */ jsxs4("div", { class: "bp-note-entry-meta", children: [
+            /* @__PURE__ */ jsx4("span", { class: "bp-note-entry-date", children: formatDate(n.created) }),
+            n.backlinkCount > 0 && /* @__PURE__ */ jsxs4("span", { class: "bp-note-entry-links", children: [
+              n.backlinkCount,
+              " ",
+              n.backlinkCount === 1 ? "link" : "links"
+            ] })
+          ] })
+        ] }) })) })
+      ] });
+    }) })
   ] });
 };
 var FolderDirectory_default = FolderDirectory;
 
 // quartz/components/pages/NotesIndex.tsx
 import { jsx as jsx5, jsxs as jsxs5 } from "preact/jsx-runtime";
+var MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
+];
+function groupByMonth(notes) {
+  const groups = [];
+  const byKey = /* @__PURE__ */ new Map();
+  for (const n of notes) {
+    const d = n.created;
+    const key = d ? `${d.getFullYear()}-${d.getMonth()}` : "undated";
+    const label = d ? `${MONTHS[d.getMonth()]} ${d.getFullYear()}` : "Undated";
+    let group = byKey.get(key);
+    if (!group) {
+      group = { key, label, notes: [] };
+      byKey.set(key, group);
+      groups.push(group);
+    }
+    group.notes.push(n);
+  }
+  return groups.filter((g) => g.key !== "undated").concat(groups.filter((g) => g.key === "undated"));
+}
 var NotesIndex = ({ fileData, allFiles }) => {
   const slug = fileData.slug;
   const notes = sortByCreatedDesc(buildNoteSummaries(allFiles));
+  const groups = groupByMonth(notes);
   return /* @__PURE__ */ jsxs5("article", { class: "popover-hint bp-notes-page", children: [
     /* @__PURE__ */ jsxs5("header", { class: "bp-page-head", children: [
       /* @__PURE__ */ jsx5("h1", { children: "All notes" }),
@@ -391,14 +454,31 @@ var NotesIndex = ({ fileData, allFiles }) => {
         " so far."
       ] })
     ] }),
-    /* @__PURE__ */ jsx5("ul", { class: "bp-notes-list", children: notes.map((n) => /* @__PURE__ */ jsx5("li", { children: /* @__PURE__ */ jsxs5("a", { class: "bp-recent-row", href: resolveRelative(slug, n.slug), children: [
-      /* @__PURE__ */ jsx5("span", { class: "bp-recent-date", children: formatDate(n.created) }),
-      /* @__PURE__ */ jsxs5("div", { children: [
-        /* @__PURE__ */ jsx5("div", { class: "bp-recent-title", children: n.title }),
-        n.description && /* @__PURE__ */ jsx5("div", { class: "bp-recent-blurb", children: n.description })
+    groups.map((g) => /* @__PURE__ */ jsxs5("section", { class: "bp-notes-group", children: [
+      /* @__PURE__ */ jsxs5("h2", { class: "bp-notes-group-label", children: [
+        g.label,
+        /* @__PURE__ */ jsx5("span", { class: "bp-notes-group-count", children: g.notes.length })
       ] }),
-      /* @__PURE__ */ jsx5("span", { class: "bp-folder-chip", children: n.folderLabel })
-    ] }) })) })
+      /* @__PURE__ */ jsx5("ul", { class: "bp-notes-group-list", children: g.notes.map((n) => /* @__PURE__ */ jsx5("li", { children: /* @__PURE__ */ jsxs5("a", { class: "bp-note-entry", href: resolveRelative(slug, n.slug), children: [
+        /* @__PURE__ */ jsxs5("div", { class: "bp-note-entry-main", children: [
+          /* @__PURE__ */ jsx5("div", { class: "bp-note-entry-title", children: n.title }),
+          n.description && /* @__PURE__ */ jsx5("p", { class: "bp-note-entry-blurb", children: n.description }),
+          n.tags.length > 0 && /* @__PURE__ */ jsx5("div", { class: "bp-note-entry-tags", children: n.tags.slice(0, 5).map((t) => /* @__PURE__ */ jsxs5("span", { children: [
+            "#",
+            t
+          ] })) })
+        ] }),
+        /* @__PURE__ */ jsxs5("div", { class: "bp-note-entry-meta", children: [
+          /* @__PURE__ */ jsx5("span", { class: "bp-note-entry-folder", children: n.folderLabel }),
+          /* @__PURE__ */ jsx5("span", { class: "bp-note-entry-date", children: formatDate(n.created) }),
+          n.backlinkCount > 0 && /* @__PURE__ */ jsxs5("span", { class: "bp-note-entry-links", children: [
+            n.backlinkCount,
+            " ",
+            n.backlinkCount === 1 ? "link" : "links"
+          ] })
+        ] })
+      ] }) })) })
+    ] }))
   ] });
 };
 var NotesIndex_default = NotesIndex;

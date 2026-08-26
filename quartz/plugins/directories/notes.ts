@@ -24,6 +24,10 @@ export interface NoteSummary {
 export function isRealNote(slug: string | undefined): boolean {
   if (!slug) return false
   if (slug === "index" || slug === "graph" || slug === "folders" || slug === "notes") return false
+  // The 404 page is emitted like any other page and otherwise counts as a
+  // note: it inflated every stat by one and surfaced as an undated "Not Found"
+  // entry in the listings and the recap queue.
+  if (slug === "404") return false
   if (slug.startsWith("tags/")) return false
   if (slug.endsWith("/index")) return false
   return true
