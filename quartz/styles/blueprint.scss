@@ -1,0 +1,1994 @@
+@use "./variables.scss" as *;
+
+/* ---------------------------------------------------------------------------
+   Blueprint — dark/light "technical drawing" theme.
+
+   This file replaces custom.scss as the unlayered override (see
+   componentResources.ts) so it wins over the @layer-wrapped component CSS.
+   custom.scss is left on disk, untouched, as a diffable reference for the
+   previous sandalwood theme.
+
+   Structure carried over unchanged from custom.scss: fixed topbar + sidebar
+   offset, popover-hint entrance animation, code-bar/copy button, reading
+   progress bar, column gutters, toolbar icon glyphs. Everything else below is
+   new Blueprint surface: registration-mark cards, tracked-out mono metadata,
+   condensed uppercase headings, and per-view bp-* classes for the new
+   Homepage / GraphPage / FolderDirectory / NotesIndex / TagDirectory /
+   NoteSiblings / recap components.
+--------------------------------------------------------------------------- */
+
+/* The design lays every view out inside one centred container —
+   `<main style="max-width:1240px;margin:0 auto;padding:0 28px">` — and the
+   fixed header uses the same measure so the wordmark lines up with the hero
+   below it. Both the topbar padding and the body cap key off this.
+   Widened past the design's own 1240px so the layout actually uses a modern
+   display; prose stays readable because the article body is capped
+   independently at $proseMeasure below, which is what the design does too
+   (its blocks carry their own `max-width:66ch`). */
+$pageMax: 1600px;
+$pageGutter: 1.75rem; // 28px, the design's own main padding
+/* Reading measure. NB: the design's literal `66ch` is misleading — `ch` is the
+   width of "0", and Barlow's digits are far wider than its lowercase, so 66ch
+   lands at ~820px / ~120 characters per line, roughly double the comfortable
+   range. In the design that cap almost never binds: its article sits in a
+   ~700px column inside a 1240px shell, so real prose there is ~620px. Since we
+   widened the shell, the cap has to do the work the column used to, expressed
+   in a unit that actually tracks the text. 32rem ≈ 75 characters. */
+$proseMeasure: 32rem;
+
+:root {
+  --topbar-h: 3.625rem; // 58px, the design's exact header height
+  --bp-grid-cell: 64px;
+  --bp-grid-line: rgb(29 31 32 / 5%);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 12%);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 12%), 0 6px 16px -4px rgb(0 0 0 / 16%);
+  --shadow-lg: 0 1px 2px rgb(0 0 0 / 14%), 0 12px 32px -8px rgb(0 0 0 / 24%);
+  --surface-veil: 82%;
+  --mono-track: 0.09em;
+}
+
+:root[saved-theme="dark"] {
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
+  --shadow-md: 0 1px 2px rgb(0 0 0 / 30%), 0 6px 16px -4px rgb(0 0 0 / 45%);
+  --shadow-lg: 0 1px 2px rgb(0 0 0 / 35%), 0 12px 32px -8px rgb(0 0 0 / 55%);
+  --surface-veil: 88%;
+  --bp-grid-line: rgb(232 233 234 / 4%);
+}
+
+/* Blueprint grid — the drafting-paper surface the whole theme is named for.
+   Deliberately additive: the design source has no pattern/gradient/svg layer
+   of its own (the grid behind the mock is the Design tool's preview canvas),
+   but a hairline grid is the one cue that makes the rest of the treatment —
+   registration marks, hairline rules, mono labels — read as a technical
+   drawing rather than just a dark theme. Fixed so it doesn't scroll away.
+
+   Scoped to the five index views only. Behind a wall of body copy the same
+   grid stops reading as texture and starts competing with the text, so note,
+   folder and tag pages — anything you actually sit and read — stay flat. */
+body[data-slug="index"]::before,
+body[data-slug="graph"]::before,
+body[data-slug="folders"]::before,
+body[data-slug="notes"]::before,
+body[data-slug="tags/index"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--bp-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--bp-grid-line) 1px, transparent 1px);
+  background-size: var(--bp-grid-cell) var(--bp-grid-cell);
+}
+
+/* Lift real content above the grid layer. */
+#quartz-root.page {
+  position: relative;
+  z-index: 1;
+}
+
+/* Design system convention (design-tokens.css): suppress the browser's native
+   focus ring — Chromium renders `outline: auto` with rounded corners, which
+   reads as a stray oval around nav links/buttons after a click — and only
+   show a clean, square-cornered ring for keyboard navigation. */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--secondary);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------
+   Base type — condensed uppercase headings, hairline rules everywhere.
+--------------------------------------------------------------------------- */
+
+.page article {
+  & h1,
+  & h4,
+  & h5,
+  & h6 {
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+
+  /* Hold the reading measure independent of the (now much wider) column, the
+     way the design caps each of its body blocks at 66ch rather than letting
+     prose run the full width of the container. Block-level children only —
+     tables and code blocks are exempt below since they carry their own
+     horizontal scroll.
+
+     Scoped away from the Blueprint index views: their <article> is a layout
+     surface, not prose, and its direct children include the full-width notes
+     and folder lists. Capping those to a reading measure squeezed the whole
+     listing into the left third of the page. */
+  &:not([class*="bp-"]) {
+    & > p,
+    & > ul,
+    & > ol,
+    & > blockquote,
+    & > h2,
+    & > h3,
+    & > h4,
+    & > h5,
+    & > h6 {
+      max-width: $proseMeasure;
+    }
+  }
+
+  /* Section heading ("## Why it matters" etc) — the design's one note-body
+     heading treatment: small mono uppercase tracked label, accent-colored,
+     hung off a top rule. Real content only ever nests one level deeper
+     (h3), which keeps its plain condensed styling from base.scss so it
+     still reads as subordinate to h2. */
+  & h2 {
+    margin: 2.625rem 0 0.875rem;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--lightgray);
+    font-family: var(--codeFont);
+    font-size: 0.9375rem;
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--secondary);
+  }
+
+  & h3 {
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+
+  /* Lede — the first paragraph directly under the title, larger and closer
+     to heading color than the rest of the body copy. */
+  & > p:first-of-type {
+    font-size: 1.40625rem;
+    line-height: 1.55;
+    color: var(--dark);
+  }
+
+  & p {
+    font-size: 1.125rem;
+    line-height: 1.75;
+  }
+
+  & blockquote {
+    position: relative;
+    margin: 0 0 1.5rem;
+    padding: 1.375rem 1.625rem;
+    border: 1px solid var(--lightgray);
+    border-left: 1px solid var(--lightgray);
+    border-radius: 0;
+    background: var(--highlight);
+
+    /* Registration-mark corners, reproduced without extra markup (markdown
+       gives us a plain <blockquote>, not the 4 <i class="corner"> nodes the
+       .blueprint mechanism elsewhere relies on) via 8 hairline gradients —
+       one vertical + one horizontal per corner, positioned the same way
+       .blueprint > .corner's own ::before/::after pair are. */
+    &::before {
+      content: "";
+      position: absolute;
+      inset: -6px;
+      pointer-events: none;
+      color: color-mix(in srgb, var(--dark) 55%, transparent);
+      background-repeat: no-repeat;
+      background-image:
+        linear-gradient(currentColor, currentColor), linear-gradient(currentColor, currentColor),
+        linear-gradient(currentColor, currentColor), linear-gradient(currentColor, currentColor),
+        linear-gradient(currentColor, currentColor), linear-gradient(currentColor, currentColor),
+        linear-gradient(currentColor, currentColor), linear-gradient(currentColor, currentColor);
+      background-size:
+        1px 11px,
+        11px 1px,
+        1px 11px,
+        11px 1px,
+        1px 11px,
+        11px 1px,
+        1px 11px,
+        11px 1px;
+      background-position:
+        left 5px top 0,
+        left 0 top 5px,
+        right 5px top 0,
+        right 0 top 5px,
+        left 5px bottom 0,
+        left 0 bottom 5px,
+        right 5px bottom 0,
+        right 0 bottom 5px;
+    }
+
+    & p {
+      margin: 0;
+      font-size: 1.1875rem;
+      line-height: 1.55;
+      color: var(--dark);
+    }
+  }
+
+  & table {
+    border-radius: 0;
+    border: 1px solid var(--lightgray);
+  }
+
+  & th {
+    font-family: var(--codeFont);
+    font-size: 0.75rem;
+    letter-spacing: var(--mono-track);
+    text-transform: uppercase;
+    color: var(--gray);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Page title (`@quartz-community/article-title`'s beforeBody <h1
+   class="article-title">) — this had no rule of its own at all, so every
+   note/folder/tag page title was falling all the way back to base.scss's
+   generic `h1 { font-size: 1.75rem }`. There's no page-type class to hook,
+   so the note-vs-topic split the design draws (note titles sentence-case at
+   52px, folder/tag titles uppercase at 64px) is done via the slug Quartz
+   already writes onto <body>: folder pages are always "<path>/index", tag
+   pages are always "tags/<name>".
+--------------------------------------------------------------------------- */
+
+.page-header .article-title {
+  margin: 0;
+  font-size: 3.25rem;
+  line-height: 1.02;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  max-width: 26ch;
+
+  @media all and ($mobile) {
+    font-size: 2.1rem;
+  }
+}
+
+body[data-slug$="/index"] .page-header .article-title,
+body[data-slug^="tags/"] .page-header .article-title {
+  font-size: 4rem;
+  line-height: 0.98;
+  text-transform: uppercase;
+  max-width: none;
+
+  @media all and ($mobile) {
+    font-size: 2.4rem;
+  }
+}
+
+/* TagDirectory renders its own <h1>Tags</h1> for tags/index and hides
+   TagContent's listing markup (below); article-title still fires for that
+   slug too (byPageType "tag" only excludes reader-mode), which otherwise
+   doubled the page title. */
+.page-header:has(.bp-tag-directory) .article-title {
+  display: none;
+}
+
+/* Breadcrumbs (`@quartz-community/breadcrumbs`) — another beforeBody element
+   with no rule of its own, defaulting to the vendor's plain/unstyled crumbs.
+   Design treats this as a mono metadata label, current segment accented. */
+.breadcrumb-container {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  font-family: var(--codeFont);
+  font-size: 0.656rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.breadcrumb-element a {
+  color: var(--gray);
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--secondary);
+  }
+}
+
+.breadcrumb-element:last-child a {
+  color: var(--secondary);
+}
+
+.breadcrumb-element p {
+  color: var(--gray);
+}
+
+/* Date / read-time line (`@quartz-community/content-meta`) — same story:
+   no rule of its own, so it rendered in the ambient body font instead of
+   the mono metadata treatment the design uses for every date/label. */
+.content-meta {
+  margin-top: 0;
+  font-family: var(--codeFont);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  color: var(--gray);
+}
+
+/* ---------------------------------------------------------------------------
+   Top navigation bar (structure unchanged from custom.scss; re-skinned)
+--------------------------------------------------------------------------- */
+
+.page {
+  padding-top: var(--topbar-h);
+}
+
+.page > #quartz-body .sidebar {
+  top: var(--topbar-h);
+  height: calc(100vh - var(--topbar-h));
+  padding-top: 2.5rem;
+}
+
+.page > #quartz-body .center > .page-header {
+  margin-top: 1.5rem;
+
+  @media all and ($mobile) {
+    margin-top: 0;
+  }
+}
+
+.page-header > header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem; // 12px, the design's identity-cluster gap
+  height: var(--topbar-h);
+  margin: 0;
+  /* A vendor plugin ships a bare `header { border-radius: 12px 12px 0 0 }`
+     for its own panel header, which leaks onto this one. Square it back. */
+  border-radius: 0;
+  padding: 0 max(1.75rem, calc((100% - #{$pageMax}) / 2 + 1.75rem));
+  border-bottom: 1px solid var(--lightgray);
+  background-color: color-mix(in srgb, var(--light) var(--surface-veil), transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+@media all and ($mobile) {
+  .page > #quartz-body .sidebar {
+    top: 0;
+    height: unset;
+  }
+
+  .page-header > header {
+    padding: 0 1rem;
+  }
+}
+
+/* Design groups the identity cluster tightly on the left —
+   `[P] Journal   REV 03 · 22 NOTES` at gap:12px — then pushes nav + search to
+   the far right via justify-content:space-between. The auto right margin that
+   used to sit here instead flung the build tag into the middle of the bar. */
+.page-header > header .page-title {
+  order: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: var(--headerFont);
+  font-size: 1.15rem;
+  font-weight: $semiBoldWeight;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  &::before {
+    content: "P";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex: none;
+    border: 1px solid var(--secondary);
+    font-family: var(--codeFont);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--secondary);
+  }
+
+  & a {
+    background: none;
+    color: var(--dark);
+  }
+
+  & a:hover {
+    color: var(--secondary);
+  }
+}
+
+/* "REV NN · N NOTES" mono label, injected by Header.tsx next to the wordmark. */
+.bp-build-tag {
+  order: 0;
+  /* Sole auto margin in the bar: ends the left cluster, pushes nav + search
+     right. Matches the design's justify-content:space-between. */
+  margin: 0 auto 0 0;
+  font-family: var(--codeFont);
+  font-size: 0.68rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+  white-space: nowrap;
+
+  @media all and ($mobile) {
+    display: none;
+  }
+}
+
+.page-header > header .site-nav {
+  order: 1;
+}
+
+.page-header > header .flex-component {
+  order: 2;
+}
+
+/* ---------------------------------------------------------------------------
+   Toolbar icons (unchanged mechanism, re-skinned to square/hairline)
+--------------------------------------------------------------------------- */
+
+$icon-search: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E";
+$icon-sun: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Cpath d='M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41'/%3E%3C/svg%3E";
+$icon-moon: "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'/%3E%3C/svg%3E";
+
+@mixin glyph($svg, $size: 18px) {
+  content: "";
+  display: block;
+  flex-shrink: 0;
+  width: $size;
+  height: $size;
+  background-color: currentColor;
+  mask-image: url("data:image/svg+xml,#{$svg}");
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml,#{$svg}");
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+
+.darkmode > svg,
+.search > .search-button > svg {
+  display: none;
+}
+
+/* The design has no theme switcher at all, so its placement is ours to
+   decide. Sized to 36px to match the search button exactly and given a
+   permanent hairline box, so the two read as one pair of controls rather than
+   a solid button with a bare icon floating off its edge. Separated by a
+   hairline rule — the same divider language used everywhere else here. */
+.page-header .darkmode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin-left: 0.5rem;
+  border: 1px solid var(--lightgray);
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--gray);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+
+  &:hover {
+    color: var(--secondary);
+    border-color: var(--secondary);
+    background-color: var(--highlight);
+  }
+}
+
+/* Divider between the search button and the theme toggle. Sits on the
+   toggle's own wrapper (the Flex component owns those inline-styled divs, so
+   there is no markup of ours to hang it on). */
+.page-header > header .flex-component > div:last-child {
+  position: relative;
+  padding-left: 0.5rem;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 20px;
+    background: var(--lightgray);
+  }
+}
+
+.page-header .darkmode::before {
+  @include glyph($icon-sun);
+}
+
+:root[saved-theme="dark"] .page-header .darkmode::before {
+  @include glyph($icon-moon);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([saved-theme]) .page-header .darkmode::before {
+    @include glyph($icon-moon);
+  }
+}
+
+.page-header .search > .search-button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 36px;
+  margin-left: 14px;
+  padding: 0 18px;
+  border: 1px solid var(--secondary);
+  border-radius: 0;
+  background-color: var(--secondary);
+  color: var(--light);
+  font-family: var(--headerFont);
+  font-size: 0.85rem;
+  font-weight: $semiBoldWeight;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &::before {
+    @include glyph($icon-search, 15px);
+  }
+
+  & > p {
+    margin: 0;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: 1;
+  }
+
+  /* "⌘K" hint — the search button is fixed markup from the vendored search
+     component (<button><svg/><p>Search</p></button>), so the hint the design
+     shows next to the label is faked the same way the "P" wordmark glyph
+     above is: a ::after pseudo-element, not real DOM. */
+  &::after {
+    content: "⌘K";
+    margin-left: 2px;
+    font-family: var(--codeFont);
+    font-size: 0.656rem;
+    font-weight: 400;
+    letter-spacing: normal;
+    text-transform: none;
+    opacity: 0.65;
+  }
+
+  &:hover {
+    background-color: var(--tertiary);
+    border-color: var(--tertiary);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Site nav — bottom-rule active indicator instead of a pill.
+--------------------------------------------------------------------------- */
+
+nav.site-nav {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  height: var(--topbar-h);
+}
+
+.nav-toggle,
+.nav-drawer {
+  display: none;
+}
+
+@media all and (max-width: 800px) {
+  .nav-links {
+    display: none !important;
+  }
+  .nav-toggle {
+    display: block;
+  }
+}
+
+.nav-links {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 1rem; // 16px, design
+  border-bottom: 2px solid transparent;
+  font-family: var(--headerFont);
+  font-size: 0.875rem; // 14px, design
+  font-weight: $semiBoldWeight;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--gray);
+  background: none;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.nav-link:hover {
+  color: var(--dark);
+}
+
+.nav-link[aria-current="page"] {
+  color: var(--dark);
+  border-bottom-color: var(--secondary);
+}
+
+.nav-toggle {
+  position: relative;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--lightgray);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.nav-toggle span {
+  position: absolute;
+  left: 50%;
+  display: block;
+  width: 1.05rem;
+  height: 2px;
+  background: var(--darkgray);
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.nav-toggle span:nth-child(1) {
+  transform: translate(-50%, calc(-50% - 0.32rem));
+  top: 50%;
+}
+.nav-toggle span:nth-child(2) {
+  transform: translate(-50%, -50%);
+  top: 50%;
+}
+.nav-toggle span:nth-child(3) {
+  transform: translate(-50%, calc(-50% + 0.32rem));
+  top: 50%;
+}
+
+.nav-toggle[aria-expanded="true"] span:nth-child(1) {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.nav-toggle[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+.nav-toggle[aria-expanded="true"] span:nth-child(3) {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.nav-drawer {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  z-index: 999;
+  flex-direction: column;
+  gap: 0;
+  min-width: 11rem;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+  box-shadow: var(--shadow-lg);
+}
+
+@media all and (max-width: 800px) {
+  .nav-drawer:not([hidden]) {
+    display: flex;
+  }
+}
+
+.nav-drawer .nav-link {
+  height: auto;
+  padding: 0.7em 0.9em;
+  border-bottom: 1px solid var(--lightgray);
+  border-left: 2px solid transparent;
+}
+
+.nav-drawer .nav-link[aria-current="page"] {
+  border-bottom-color: var(--lightgray);
+  border-left-color: var(--secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-link,
+  .nav-toggle span {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Column gutters
+--------------------------------------------------------------------------- */
+
+/* Quartz spreads its 3-column grid edge-to-edge; the design centres every view
+   in a 1240px measure. Cap and centre the grid itself so content stops
+   drifting right and matches the fixed header's own alignment above. */
+.page > #quartz-body {
+  max-width: $pageMax;
+  margin: 0 auto;
+  padding: 0 $pageGutter;
+
+  @media all and ($mobile) {
+    padding: 0 1rem;
+  }
+}
+
+@media all and ($desktop) {
+  .page > #quartz-body {
+    grid-template-columns: 200px auto 280px;
+    column-gap: 1.75rem;
+  }
+}
+
+@media all and ($tablet) {
+  .page > #quartz-body {
+    grid-template-columns: 200px auto;
+    column-gap: 1.5rem;
+  }
+}
+
+/* The five Blueprint index views have no rails at all in the design — their
+   left/right sidebars render as empty <div>s, so the grid would otherwise
+   reserve ~480px of dead gutter and shove the content off-centre. Drop to a
+   single column for exactly those slugs; note/folder/tag pages keep their
+   rails (siblings, local graph, TOC, recap). */
+body[data-slug="index"],
+body[data-slug="graph"],
+body[data-slug="folders"],
+body[data-slug="notes"],
+body[data-slug="tags/index"] {
+  & .page > #quartz-body {
+    display: block;
+  }
+
+  & .page > #quartz-body > .sidebar {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Registration-mark treatment — ported from the design's own styles.css.
+--------------------------------------------------------------------------- */
+
+.blueprint {
+  position: relative;
+}
+
+.blueprint > .corner {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  color: color-mix(in srgb, var(--dark) 55%, transparent);
+}
+
+.blueprint > .corner::before,
+.blueprint > .corner::after {
+  content: "";
+  position: absolute;
+  background: currentColor;
+}
+
+.blueprint > .corner::before {
+  left: 5px;
+  top: 0;
+  width: 1px;
+  height: 100%;
+}
+
+.blueprint > .corner::after {
+  top: 5px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+}
+
+.blueprint > .corner.tl {
+  top: -6px;
+  left: -6px;
+}
+.blueprint > .corner.tr {
+  top: -6px;
+  right: -6px;
+}
+.blueprint > .corner.bl {
+  bottom: -6px;
+  left: -6px;
+}
+.blueprint > .corner.br {
+  bottom: -6px;
+  right: -6px;
+}
+
+/* ---------------------------------------------------------------------------
+   Shared mono/label utilities used across every bp-* view.
+--------------------------------------------------------------------------- */
+
+.bp-eyebrow {
+  font-family: var(--codeFont);
+  font-size: 0.7rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.bp-label {
+  font-family: var(--codeFont);
+  font-size: 0.66rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.bp-hr {
+  border: 0;
+  border-top: 1px solid var(--lightgray);
+}
+
+/* ---------------------------------------------------------------------------
+   Homepage
+--------------------------------------------------------------------------- */
+
+.bp-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  border-bottom: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.bp-hero-main {
+  padding: 3rem 2.5rem 3rem 0;
+  border-right: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    padding: 2rem 0;
+    border-right: none;
+  }
+}
+
+.bp-hero-main h1 {
+  margin: 1.375rem 0 0;
+  font-size: 4.75rem;
+  line-height: 0.95;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+  max-width: 15ch;
+
+  @media all and ($mobile) {
+    font-size: 2.75rem;
+  }
+}
+
+.bp-hero-main p {
+  margin: 1.25rem 0 0;
+  font-size: 1.1rem;
+  line-height: 1.65;
+  max-width: 60ch;
+  color: var(--darkgray);
+}
+
+.bp-hero-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.bp-stats-rail {
+  display: flex;
+  flex-direction: column;
+}
+
+.bp-stat {
+  padding: 1rem 0 1rem 1.5rem;
+  border-bottom: 1px solid var(--lightgray);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.bp-stat-label {
+  font-family: var(--codeFont);
+  font-size: 0.66rem;
+  line-height: 1.4;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.bp-stat-value {
+  font-family: var(--headerFont);
+  font-size: 2.125rem;
+  line-height: 1;
+  color: var(--secondary);
+}
+
+.bp-activity-chart {
+  padding: 1rem 0 0 1.5rem;
+
+  & .bp-label {
+    margin-bottom: 0.75rem;
+  }
+}
+
+.bp-activity-bars {
+  display: flex;
+  gap: 3px;
+  align-items: flex-end;
+  height: 44px;
+}
+
+.bp-activity-bar {
+  flex: 1;
+  background: var(--lightgray);
+  min-height: 3px;
+}
+
+.bp-activity-bar[data-level="high"] {
+  background: var(--secondary);
+}
+
+.bp-activity-bar[data-level="mid"] {
+  background: var(--tertiary);
+}
+
+.bp-graph-section {
+  padding: 2rem 0 0;
+}
+
+.bp-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 1rem;
+
+  & h2 {
+    margin: 0;
+    font-size: 1.55rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+.bp-section-link {
+  font-family: var(--codeFont);
+  font-size: 0.7rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--secondary);
+
+  &:hover {
+    color: var(--tertiary);
+  }
+}
+
+/* The stock Graph component's own right-rail wrapper (note pages) — square
+   off its rounded default chrome and re-label the heading mono/tracked, to
+   match every other bp-* panel. The component itself (D3-force/PixiJS
+   render, drag/zoom/click-to-navigate) is untouched. */
+.graph > h3 {
+  font-family: var(--codeFont);
+  font-size: 0.68rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.graph > .graph-outer {
+  border-radius: 0;
+  border-color: var(--lightgray);
+}
+
+.graph > .global-graph-outer > .global-graph-container {
+  border-radius: 0;
+}
+
+/* Mini/local/full graph panels — plain .graph-container[data-cfg] divs sized
+   per context. The Graph plugin auto-inits any element matching this
+   selector; only sizing/chrome is ours to control. */
+.bp-graph-panel {
+  position: relative;
+  overflow: hidden;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+}
+
+.bp-graph-panel.bp-graph-mini {
+  height: 320px;
+}
+
+.bp-graph-panel.bp-graph-local {
+  height: 200px;
+  cursor: pointer;
+}
+
+.bp-graph-panel.bp-graph-full {
+  height: 600px;
+}
+
+.bp-graph-panel .graph-container {
+  width: 100%;
+  height: 100%;
+}
+
+.bp-graph-caption {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  line-height: 1.6;
+  letter-spacing: 0.05em;
+  color: var(--gray);
+  pointer-events: none;
+}
+
+.bp-two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 0;
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.bp-recent-main {
+  padding: 1.75rem 2.5rem 2.5rem 0;
+  border-right: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    padding: 1.75rem 0;
+    border-right: none;
+  }
+}
+
+.bp-recent-main h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.55rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bp-recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bp-recent-row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  align-items: baseline;
+  padding: 1rem 0.5rem 1rem 0;
+  border-top: 1px solid var(--lightgray);
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--highlight);
+  }
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.35rem;
+  }
+}
+
+.bp-recent-date {
+  font-family: var(--codeFont);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--gray);
+}
+
+.bp-recent-title {
+  font-family: var(--headerFont);
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.bp-recent-blurb {
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--gray);
+  max-width: 64ch;
+}
+
+.bp-folder-chip {
+  align-self: start;
+  font-family: var(--codeFont);
+  font-size: 0.62rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--lightgray);
+  color: var(--gray);
+  white-space: nowrap;
+}
+
+.bp-aside {
+  padding: 1.75rem 0 2.5rem 1.75rem;
+
+  @media all and ($mobile) {
+    padding: 1.75rem 0;
+  }
+}
+
+.bp-due-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.75rem;
+}
+
+.bp-folder-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bp-folder-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--lightgray);
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--secondary);
+  }
+}
+
+.bp-folder-row-name {
+  font-family: var(--headerFont);
+  font-size: 1.05rem;
+}
+
+.bp-folder-row-count {
+  font-family: var(--codeFont);
+  font-size: 0.68rem;
+  color: var(--gray);
+}
+
+/* ---------------------------------------------------------------------------
+   Recap card / rail (build-time skeleton, hydrated client-side)
+--------------------------------------------------------------------------- */
+
+.bp-recap-card {
+  display: block;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--lightgray);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--highlight);
+  }
+}
+
+.bp-recap-card[hidden] {
+  display: none;
+}
+
+.bp-recap-when {
+  font-family: var(--codeFont);
+  font-size: 0.62rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.bp-recap-title {
+  margin-top: 0.5rem;
+  font-family: var(--headerFont);
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.bp-recap-empty {
+  font-size: 0.85rem;
+  color: var(--gray);
+}
+
+/* Note aside "Recap this note" card. */
+.bp-recap-panel {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--lightgray);
+}
+
+.bp-recap-panel p {
+  margin: 0.5rem 0 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--gray);
+}
+
+/* ---------------------------------------------------------------------------
+   Graph page
+--------------------------------------------------------------------------- */
+
+.bp-graph-page-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 0;
+  border-bottom: 1px solid var(--lightgray);
+  padding: 2.25rem 0 1.25rem;
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.bp-graph-page-head h1 {
+  margin: 0;
+  font-size: 3.5rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.bp-graph-page-head p {
+  margin: 0.9rem 0 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  max-width: 58ch;
+  color: var(--darkgray);
+}
+
+.bp-graph-meta {
+  padding-left: 1.75rem;
+  border-left: 1px solid var(--lightgray);
+  font-family: var(--codeFont);
+  font-size: 0.7rem;
+  line-height: 1.9;
+  color: var(--gray);
+
+  @media all and ($mobile) {
+    padding-left: 0;
+    border-left: none;
+    margin-top: 1rem;
+  }
+}
+
+.bp-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--lightgray);
+  border-left: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bp-hub-cell {
+  padding: 1.1rem 1.25rem;
+  border-right: 1px solid var(--lightgray);
+  border-bottom: 1px solid var(--lightgray);
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--highlight);
+  }
+}
+
+.bp-hub-meta {
+  font-family: var(--codeFont);
+  font-size: 0.62rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.bp-hub-title {
+  margin-top: 0.5rem;
+  font-family: var(--headerFont);
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+/* ---------------------------------------------------------------------------
+   Folders hub (/folders) and Notes index (/notes)
+--------------------------------------------------------------------------- */
+
+.bp-page-head {
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--lightgray);
+  max-width: 640px;
+}
+
+.bp-page-head h1 {
+  margin: 0;
+  font-size: 3.5rem;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.bp-page-head p {
+  margin: 0.85rem 0 0;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--darkgray);
+}
+
+.bp-folder-groups {
+  padding: 0.5rem 0 3.5rem;
+}
+
+.bp-folder-group {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 2.25rem;
+  padding: 1.75rem 0;
+  border-top: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+.bp-folder-group:last-child {
+  border-bottom: 1px solid var(--lightgray);
+}
+
+/* Sticky so the folder name and its stats stay in view while a long folder
+   scrolls past — the label column is otherwise dead space on tall groups. */
+.bp-folder-group-head {
+  position: sticky;
+  top: calc(var(--topbar-h) + 1.5rem);
+  align-self: start;
+  padding-top: 0.2rem;
+
+  @media all and ($mobile) {
+    position: static;
+  }
+}
+
+.bp-folder-group-name {
+  margin: 0;
+  font-family: var(--codeFont);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.bp-folder-group-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.5rem;
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gray);
+
+  @media all and ($mobile) {
+    flex-direction: row;
+    gap: 0.75rem;
+  }
+}
+
+.bp-folder-note-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bp-folder-note-list > li + li > .bp-note-entry {
+  border-top: 1px solid var(--lightgray);
+}
+
+/* /notes — month buckets in the design's 180px-mono-label-column idiom
+   (borrowed from its topic view), with each entry laid out like the design's
+   search result: title/blurb/tags left, folder + date + link count right. */
+
+.bp-notes-group {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 2.25rem;
+  padding: 1.75rem 0;
+  border-top: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+.bp-notes-group:last-of-type {
+  border-bottom: 1px solid var(--lightgray);
+  margin-bottom: 3.5rem;
+}
+
+.bp-notes-group-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding-top: 0.2rem;
+  font-family: var(--codeFont);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--secondary);
+  border: 0;
+}
+
+.bp-notes-group-count {
+  color: var(--gray);
+}
+
+.bp-notes-group-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.bp-note-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 1.75rem;
+  padding: 1rem 0.5rem 1rem 0;
+  background: none;
+  color: inherit;
+  transition: background-color 0.15s ease;
+
+  & + & {
+    border-top: 1px solid var(--lightgray);
+  }
+
+  &:hover {
+    background: var(--highlight);
+  }
+
+  @media all and ($mobile) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+}
+
+.bp-notes-group-list > li + li > .bp-note-entry {
+  border-top: 1px solid var(--lightgray);
+}
+
+.bp-note-entry-title {
+  font-family: var(--headerFont);
+  font-size: 1.375rem;
+  font-weight: $semiBoldWeight;
+  line-height: 1.16;
+  color: var(--dark);
+}
+
+.bp-note-entry:hover .bp-note-entry-title {
+  color: var(--secondary);
+}
+
+.bp-note-entry-blurb {
+  max-width: 78ch;
+  margin: 0.375rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--gray);
+}
+
+.bp-note-entry-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.55rem;
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+/* Right rail of the row: right-aligned mono metadata, folder accented so the
+   eye can scan folders down the column. */
+.bp-note-entry-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: right;
+  white-space: nowrap;
+
+  @media all and ($mobile) {
+    align-items: flex-start;
+    flex-direction: row;
+    gap: 0.75rem;
+  }
+}
+
+.bp-note-entry-folder {
+  color: var(--secondary);
+}
+
+.bp-note-entry-date,
+.bp-note-entry-links {
+  color: var(--gray);
+}
+
+/* ---------------------------------------------------------------------------
+   Tag directory (/tags/index)
+--------------------------------------------------------------------------- */
+
+/* Hide the default TagPage listing markup on the one page TagDirectory owns —
+   scoped via :has() so only /tags/index is affected, never /tags/<tag>. */
+.page-header:has(.bp-tag-directory) + .popover-hint {
+  display: none;
+}
+
+.bp-tag-directory {
+  grid-column: 1 / -1;
+}
+
+.bp-tag-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-left: 1px solid var(--lightgray);
+  margin-top: 0.5rem;
+
+  @media all and ($tablet) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media all and ($mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bp-tag-cell {
+  padding: 1rem 1.1rem;
+  border-right: 1px solid var(--lightgray);
+  border-bottom: 1px solid var(--lightgray);
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--highlight);
+  }
+}
+
+.bp-tag-cell-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.bp-tag-name {
+  font-family: var(--headerFont);
+  font-size: 1.1rem;
+}
+
+.bp-tag-count {
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  color: var(--gray);
+}
+
+.bp-tag-bar-track {
+  height: 3px;
+  margin-top: 0.6rem;
+  background: var(--lightgray);
+}
+
+.bp-tag-bar-fill {
+  height: 3px;
+  background: var(--secondary);
+}
+
+/* ---------------------------------------------------------------------------
+   Note siblings (left rail)
+--------------------------------------------------------------------------- */
+
+.bp-note-siblings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.bp-note-sibling {
+  padding: 0.5rem 0 0.5rem 0.6rem;
+  border-left: 2px solid var(--lightgray);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--gray);
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--secondary);
+  }
+}
+
+.bp-note-sibling[aria-current="page"] {
+  border-left-color: var(--secondary);
+  color: var(--dark);
+}
+
+/* ---------------------------------------------------------------------------
+   Table of contents (vendor `@quartz-community/table-of-contents`, right
+   rail) — had no rule of its own, so both the "ON THIS PAGE" header and the
+   entries themselves were falling back to the component's own generic
+   @layer-wrapped CSS. Entries mirror .bp-note-sibling's left-border-mark
+   treatment, which is exactly what the design uses for its TOC rows too.
+--------------------------------------------------------------------------- */
+
+.toc button.toc-header h3 {
+  font-family: var(--codeFont);
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.toc ul.toc-content.overflow > li > a {
+  display: block;
+  padding: 0.4375rem 0 0.4375rem 0.625rem;
+  border-left: 2px solid var(--lightgray);
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--gray);
+  opacity: 1;
+  transition: color 0.15s ease;
+}
+
+.toc ul.toc-content.overflow > li > a.in-view {
+  border-left-color: var(--secondary);
+  color: var(--dark);
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   Linked notes (backlinks, restyled into an afterBody grid)
+--------------------------------------------------------------------------- */
+
+.page > #quartz-body .center > .page-footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--lightgray);
+}
+
+.backlinks {
+  flex-direction: column;
+}
+
+.backlinks > h3 {
+  margin: 0 0 0.75rem;
+  font-family: var(--codeFont);
+  font-size: 0.68rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.backlinks > ul.overflow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--lightgray);
+  border-left: 1px solid var(--lightgray);
+
+  @media all and ($mobile) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.backlinks > ul.overflow > li {
+  border-right: 1px solid var(--lightgray);
+  border-bottom: 1px solid var(--lightgray);
+}
+
+.backlinks > ul.overflow > li > a {
+  display: block;
+  padding: 1rem 1.1rem;
+  background-color: transparent;
+  font-family: var(--headerFont);
+  font-size: 1.1rem;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: var(--highlight);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Quiz overlay (recap "quiz me" flow)
+--------------------------------------------------------------------------- */
+
+.bp-quiz-overlay {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--lightgray);
+  background: var(--light);
+}
+
+.bp-quiz-overlay[hidden] {
+  display: none;
+}
+
+.bp-quiz-progress {
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.bp-quiz-prompt {
+  margin: 0.85rem 0 0;
+  font-family: var(--headerFont);
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.bp-quiz-hint {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--gray);
+}
+
+.bp-quiz-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.bp-quiz-actions[hidden] {
+  display: none;
+}
+
+.bp-quiz-done {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--gray);
+}
+
+.bp-quiz-done[hidden] {
+  display: none;
+}
+
+/* article body is hidden while a quiz is running */
+article.bp-quiz-active > *:not(.bp-quiz-overlay) {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Buttons / tags — square, transparent, hairline-bordered.
+--------------------------------------------------------------------------- */
+
+.bp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.75rem 1.3rem;
+  border: 1px solid var(--lightgray);
+  font-family: var(--headerFont);
+  font-size: 0.85rem;
+  font-weight: $semiBoldWeight;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dark);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.bp-btn:hover {
+  background-color: var(--highlight);
+}
+
+.bp-btn-primary {
+  border-color: var(--secondary);
+  background-color: var(--secondary);
+  color: var(--light);
+}
+
+.bp-btn-primary:hover {
+  background-color: var(--tertiary);
+  border-color: var(--tertiary);
+}
+
+.bp-tag-pill {
+  padding: 4px 9px;
+  border: 1px solid var(--lightgray);
+  font-family: var(--codeFont);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gray);
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.bp-tag-pill:hover {
+  border-color: var(--secondary);
+  color: var(--secondary);
+}
+
+/* ---------------------------------------------------------------------------
+   Code blocks (PageChrome copy-button bar)
+--------------------------------------------------------------------------- */
+
+figure[data-rehype-pretty-code-figure] {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--lightgray);
+  border-radius: 0;
+  box-shadow: none;
+
+  & > pre {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+  }
+}
+
+.code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 0.5rem 0.4rem 0.9rem;
+  border-bottom: 1px solid var(--lightgray);
+  background-color: var(--highlight);
+}
+
+.code-lang {
+  font-family: var(--codeFont);
+  font-size: 0.68rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.code-copy {
+  padding: 0.25rem 0.65rem;
+  border: 1px solid transparent;
+  background-color: transparent;
+  color: var(--gray);
+  font-family: var(--codeFont);
+  font-size: 0.625rem;
+  letter-spacing: var(--mono-track);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color 0.2s var(--ease-out),
+    border-color 0.2s var(--ease-out);
+
+  &:hover {
+    color: var(--secondary);
+    border-color: var(--lightgray);
+  }
+
+  &.copied {
+    color: var(--secondary);
+    border-color: var(--secondary);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Reading progress
+--------------------------------------------------------------------------- */
+
+.reading-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 95;
+  height: 2px;
+  pointer-events: none;
+
+  & > span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--secondary);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Motion
+--------------------------------------------------------------------------- */
+
+@keyframes chrome-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page > #quartz-body .center > article,
+.page > #quartz-body .center > .page-header .popover-hint {
+  animation: chrome-rise 0.4s var(--ease-out) both;
+}
+
+a.internal {
+  transition: color 0.15s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a.internal,
+  .code-copy,
+  .page-header .darkmode,
+  .page-header .search > .search-button,
+  .bp-recap-card,
+  .bp-recent-row,
+  .bp-hub-cell,
+  .bp-tag-cell,
+  .bp-folder-row,
+  .bp-folder-note-row,
+  .backlinks > ul.overflow > li > a {
+    transition: none;
+  }
+
+  .page > #quartz-body .center > article,
+  .page > #quartz-body .center > .page-header .popover-hint {
+    animation: none;
+  }
+}

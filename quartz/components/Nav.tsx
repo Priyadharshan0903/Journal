@@ -15,10 +15,21 @@ interface NavOptions {
 const defaultOptions: NavOptions = {
   links: [
     { title: "Home", slug: "" },
-    { title: "Go", slug: "go" },
-    { title: "Jenkins", slug: "jenkins" },
+    { title: "Graph", slug: "graph" },
+    { title: "Folders", slug: "folders" },
+    { title: "Reading", slug: "notes" },
     { title: "Tags", slug: "tags" },
   ],
+}
+
+/** Normalizes a nav link's target slug ("" for home) against the current page's
+ * slug so the right tab reads as active — the home link and the tag directory
+ * both need special-casing since they don't match by simple prefix. */
+function isActiveLink(linkSlug: string, currentSlug: string): boolean {
+  const current = currentSlug.replace(/\/index$/, "")
+  if (linkSlug === "") return current === "index" || current === ""
+  if (linkSlug === "tags") return current === "tags" || current.startsWith("tags/")
+  return current === linkSlug
 }
 
 export default ((userOpts?: Partial<NavOptions>) => {
@@ -29,9 +40,14 @@ export default ((userOpts?: Partial<NavOptions>) => {
     // from a subpath (e.g. a GitHub Pages project page) as well as from a root.
     const root = pathToRoot(fileData.slug!)
     const href = (slug: string) => (slug === "" ? root : `${root}/${slug}`)
+    const currentSlug = fileData.slug ?? ""
 
     const links = opts.links.map(({ title, slug }) => (
-      <a href={href(slug)} class="nav-link">
+      <a
+        href={href(slug)}
+        class="nav-link"
+        aria-current={isActiveLink(slug, currentSlug) ? "page" : undefined}
+      >
         {title}
       </a>
     ))
@@ -62,131 +78,16 @@ export default ((userOpts?: Partial<NavOptions>) => {
 
   // Plain CSS, not SCSS — the 800px breakpoint must stay in sync with
   // $breakpoints.mobile in quartz/styles/variables.scss.
-  Nav.css = `
-nav.site-nav {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-/* Pill cluster on desktop, hamburger + drawer below 800px. */
-.nav-toggle,
-.nav-drawer {
-  display: none;
-}
-
-@media all and (max-width: 800px) {
-  .nav-links {
-    display: none !important;
-  }
-  .nav-toggle {
-    display: block;
-  }
-}
-
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 0.15rem;
-  padding: 0.2rem 0.35rem;
-  border: 1px solid var(--lightgray);
-  border-radius: 2em;
-  background: var(--light);
-}
-
-.nav-link {
-  font-family: var(--headerFont);
-  font-size: 0.95rem;
-  font-weight: 600;
-  line-height: 1;
-  padding: 0.5em 0.85em;
-  border-radius: 2em;
-  color: var(--darkgray);
-  background: none;
-  white-space: nowrap;
-  transition:
-    color 0.15s ease,
-    background-color 0.15s ease;
-}
-
-.nav-link:hover {
-  color: var(--tertiary);
-  background: var(--highlight);
-}
-
-/* Hamburger: three bars that morph into an X when the drawer is open. */
-.nav-toggle {
-  position: relative;
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0;
-  border: 1px solid var(--lightgray);
-  border-radius: 50%;
-  background: var(--light);
-  cursor: pointer;
-}
-
-.nav-toggle span {
-  position: absolute;
-  left: 50%;
-  display: block;
-  width: 1.05rem;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--darkgray);
-  transition:
-    transform 0.2s ease,
-    opacity 0.2s ease;
-}
-
-.nav-toggle span:nth-child(1) { transform: translate(-50%, calc(-50% - 0.32rem)); top: 50%; }
-.nav-toggle span:nth-child(2) { transform: translate(-50%, -50%); top: 50%; }
-.nav-toggle span:nth-child(3) { transform: translate(-50%, calc(-50% + 0.32rem)); top: 50%; }
-
-.nav-toggle[aria-expanded="true"] span:nth-child(1) {
-  transform: translate(-50%, -50%) rotate(45deg);
-}
-.nav-toggle[aria-expanded="true"] span:nth-child(2) {
-  opacity: 0;
-}
-.nav-toggle[aria-expanded="true"] span:nth-child(3) {
-  transform: translate(-50%, -50%) rotate(-45deg);
-}
-
-.nav-drawer {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
-  z-index: 999;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 11rem;
-  padding: 0.4rem;
-  border: 1px solid var(--lightgray);
-  border-radius: 0.75rem;
-  background: var(--light);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
-/* Opening the drawer clears the [hidden] attribute; it stays closed on desktop. */
-@media all and (max-width: 800px) {
-  .nav-drawer:not([hidden]) {
-    display: flex;
-  }
-}
-
-.nav-drawer .nav-link {
-  text-align: left;
-  padding: 0.6em 0.8em;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nav-link,
-  .nav-toggle span {
-    transition: none;
-  }
-}
-`
+  // Nav appearance lives entirely in quartz/styles/blueprint.scss, which
+  // already defines every rule this file used to (.nav-links, .nav-link and
+  // its hover/active states, .nav-toggle + hamburger transforms, .nav-drawer).
+  // Keeping a second copy here was actively harmful: component CSS is linked
+  // *after* the main stylesheet, so the old sandalwood pill treatment
+  // (border-radius: 2em on .nav-links/.nav-link, plus a larger font-size and
+  // padding) silently beat Blueprint's flat bar — which is what drew the
+  // capsule outline around the tabs and bent the active underline into a
+  // curve. Left empty so blueprint.scss is the single source of truth.
+  Nav.css = ``
 
   Nav.afterDOMLoaded = `
 (() => {

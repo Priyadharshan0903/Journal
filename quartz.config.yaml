@@ -14,42 +14,44 @@ configuration:
   theme:
     fontOrigin: googleFonts
     cdnCaching: true
+    # Blueprint: condensed uppercase headings, tracked-out mono metadata.
+    # Keep this block in sync with the `quartz-fonts` plugin's own `options`
+    # below — that plugin does not read this typography block at all.
     typography:
       header:
-        name: Fraunces
-        weights: [400, 600, 700]
-        includeItalic: true
+        name: Barlow Condensed
+        weights: [400, 600]
       body:
-        name: Source Sans 3
-        weights: [400, 600]
-        includeItalic: true
+        name: Barlow
+        weights: [400, 500, 700]
       code:
-        name: JetBrains Mono
-        weights: [400, 600]
+        name: IBM Plex Mono
+        weights: [400, 500]
     colors:
-      # Sandalwood + terracotta. Every pair below is contrast-checked against its
-      # own background; hover deliberately goes darker in light mode and lighter
-      # in dark mode so it always reads as more prominent than rest.
+      # Blueprint: dark, technical/industrial. Light mode derives from the
+      # design's own un-darkened tokens rather than the dark palette, so hover
+      # goes darker in light mode and lighter in dark mode — same convention
+      # the previous sandalwood theme used.
       lightMode:
-        light: "#faf5ec" # cream paper
-        lightgray: "#e8dcc8" # sand — borders, rules
-        gray: "#7d6a4d" # muted text, graph links      4.79:1  AA
-        darkgray: "#4a4038" # body text                    9.29:1  AAA
-        dark: "#2a231c" # headings                    14.26:1  AAA
-        secondary: "#9a5b34" # clay — links, accent         4.93:1  AA
-        tertiary: "#8f5620" # deep clay — hover            5.49:1  AA
-        highlight: rgba(154, 91, 52, 0.10)
-        textHighlight: "#f0c07b88"
+        light: "#f2f2f3" # paper
+        lightgray: "#dcdcdd" # borders, rules
+        gray: "#5d5d60" # muted text, graph links
+        darkgray: "#33353a" # body text
+        dark: "#1a1c1d" # headings
+        secondary: "#5980a6" # links, accent
+        tertiary: "#597ea3" # hover — darker in light mode
+        highlight: rgba(89, 128, 166, 0.1)
+        textHighlight: "#b5d9fd88"
       darkMode:
-        light: "#1c1815" # warm charcoal, brown-tinted not blue-black
-        lightgray: "#3a332c" # bark
-        gray: "#8d8171" # muted text                    4.63:1  AA
-        darkgray: "#ddd3c4" # body text                    11.92:1  AAA
-        dark: "#f2ece1" # headings                     15.00:1  AAA
-        secondary: "#e0a367" # amber — links                 8.06:1  AAA
-        tertiary: "#f0bc82" # light amber — hover          10.26:1  AAA
-        highlight: rgba(224, 163, 103, 0.12)
-        textHighlight: "#c9743b66"
+        light: "#111315" # near-black, blue-tinted
+        lightgray: "#292c2f" # hairline borders
+        gray: "#8a8d90" # muted text, graph links
+        darkgray: "#cfd0d2" # body text
+        dark: "#e8e9ea" # headings
+        secondary: "#94bce3" # links, accent
+        tertiary: "#b5d9fd" # hover — lighter in dark mode
+        highlight: rgba(148, 188, 227, 0.12)
+        textHighlight: "#94bce366"
 plugins:
   - source: "@quartz-community/created-modified-date"
     enabled: true
@@ -117,16 +119,14 @@ plugins:
     options:
       fontOrigin: googleFonts
       header:
-        name: Fraunces
-        weights: [400, 600, 700]
-        includeItalic: true
+        name: Barlow Condensed
+        weights: [400, 600]
       body:
-        name: Source Sans 3
-        weights: [400, 600]
-        includeItalic: true
+        name: Barlow
+        weights: [400, 500, 700]
       code:
-        name: JetBrains Mono
-        weights: [400, 600]
+        name: IBM Plex Mono
+        weights: [400, 500]
   - source: "@quartz-themes/core"
     enabled: false
     options:
@@ -157,18 +157,43 @@ plugins:
     enabled: true
   - source: "@quartz-community/folder-page"
     enabled: true
+    options:
+      showFolderCount: true
+      showSubfolders: true
   - source: "@quartz-community/tag-page"
     enabled: true
-  - source: "@quartz-community/explorer"
+  # Blueprint page-type/component plugins.
+  - source: "./quartz/plugins/directories"
+    enabled: true
+    order: 15
+  - source: "./quartz/plugins/tag-directory"
+    enabled: true
+    layout:
+      position: beforeBody
+      priority: 5
+  - source: "./quartz/plugins/note-siblings"
     enabled: true
     layout:
       position: left
+      priority: 10
+  - source: "./quartz/plugins/recap"
+    enabled: true
+    layout:
+      position: right
+      priority: 40
+  # Blueprint has no persistent file-tree sidebar — a note's left rail is a
+  # folder-scoped sibling list (note-siblings) instead.
+  - source: "@quartz-community/explorer"
+    enabled: false
+    layout:
+      position: left
       priority: 50
-  # Graph moves out of the right rail to sit below the article.
+  # Local graph panel moves back into the note's right rail; the dedicated
+  # /graph page renders its own always-expanded instance independently.
   - source: "@quartz-community/graph"
     enabled: true
     layout:
-      position: afterBody
+      position: right
       priority: 20
   - source: "@quartz-community/search"
     enabled: true
@@ -178,11 +203,12 @@ plugins:
       group: toolbar
       groupOptions:
         grow: true
+  # Restyled into the full-width "Linked notes" grid under the article.
   - source: "@quartz-community/backlinks"
     enabled: true
     layout:
-      position: right
-      priority: 50
+      position: afterBody
+      priority: 30
   - source: "@quartz-community/article-title"
     enabled: true
     layout:
@@ -212,8 +238,9 @@ plugins:
       position: header
       priority: 40
       group: toolbar
+  # Not in the Blueprint design.
   - source: "@quartz-community/reader-mode"
-    enabled: true
+    enabled: false
     layout:
       position: header
       priority: 50
@@ -309,11 +336,21 @@ layout:
       exclude:
         - reader-mode
       positions:
+        left: []
         right: []
     tag:
       exclude:
         - reader-mode
       positions:
+        left: []
+        right: []
+    # Homepage / graph / folders-hub / notes-index — each Body owns its full
+    # layout (hero, mini graph, stats rail, etc.), so no generic chrome.
+    directories:
+      positions:
+        beforeBody: []
+        afterBody: []
+        left: []
         right: []
     canvas: {}
     bases: {}

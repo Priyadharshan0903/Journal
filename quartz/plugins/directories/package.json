@@ -1,0 +1,17 @@
+{
+  "name": "directories",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "quartz": {
+    "name": "directories",
+    "displayName": "Directories",
+    "category": "pageType",
+    "version": "1.0.0",
+    "defaultOrder": 15,
+    "defaultEnabled": true,
+    "defaultOptions": {}
+  }
+}

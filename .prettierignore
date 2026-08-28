@@ -1,3 +1,6 @@
 public
 node_modules
 .quartz-cache
+# Compiled local-plugin output (esbuild-bundled JS, see scripts/compile-local-plugins.mjs) —
+# generated, not hand-written.
+quartz/plugins/*/dist
