@@ -11,6 +11,8 @@ configuration:
     - private
     - templates
     - .obsidian
+    # Temporarily hide the platform roadmap. Remove this entry to publish it again.
+    - "Platform Engineer Roadmap - Golang.md"
   theme:
     fontOrigin: googleFonts
     cdnCaching: true
